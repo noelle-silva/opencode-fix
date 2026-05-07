@@ -52,7 +52,7 @@
     min-width: 0;
     color: var(--text-weak);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-base);
+    font-size: var(--session-font-size, var(--font-size-base));
     font-weight: var(--font-weight-medium);
     line-height: 20px;
     min-height: 20px;
@@ -110,7 +110,7 @@
     font-variant-numeric: tabular-nums;
     color: var(--text-strong);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-base);
+    font-size: var(--session-font-size, var(--font-size-base));
     font-weight: var(--font-weight-medium);
     line-height: var(--line-height-large);
   }
@@ -118,7 +118,7 @@
   [data-slot="session-turn-diffs-toggle"] {
     color: var(--text-interactive-base);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-base);
+    font-size: var(--session-font-size, var(--font-size-base));
     font-weight: var(--font-weight-regular);
     line-height: var(--line-height-large);
     cursor: pointer;
@@ -138,7 +138,7 @@
   [data-slot="session-turn-diffs-more"] {
     color: var(--text-weak);
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-small);
+    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
     line-height: var(--line-height-large);
     margin-top: 12px;
     padding: 0 0 6px;
@@ -171,7 +171,7 @@
     min-width: 0;
 
     font-family: var(--font-family-sans);
-    font-size: var(--font-size-small);
+    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
     line-height: var(--line-height-large);
   }
 
