@@ -139,7 +139,9 @@
     background-color: var(--session-turn-diffs-glass);
     backdrop-filter: blur(14px) saturate(1.35);
     -webkit-backdrop-filter: blur(14px) saturate(1.35);
+    border-radius: var(--radius-lg);
     height: 44px;
+    overflow: hidden;
   }
 
   [data-slot="session-turn-diffs-label"] {
