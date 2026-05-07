@@ -1803,12 +1803,14 @@ export default function Layout(props: ParentProps) {
   )
 
   createEffect(() => {
-    const sidebarWidth = layout.sidebar.opened() ? layout.sidebar.width() : 48
+    const sidebarWidth =
+      settings.general.sidebarPosition() === "right" ? 0 : layout.sidebar.opened() ? layout.sidebar.width() : 48
     document.documentElement.style.setProperty("--dialog-left-margin", `${sidebarWidth}px`)
   })
 
   const side = createMemo(() => Math.max(layout.sidebar.width(), 244))
   const panel = createMemo(() => Math.max(side() - 64, 0))
+  const sidebarRight = createMemo(() => desktop() && settings.general.sidebarPosition() === "right")
 
   const loadedSessionDirs = new Set<string>()
 
@@ -2346,6 +2348,7 @@ export default function Layout(props: ParentProps) {
       onOpenSettings={openSettings}
       helpLabel={() => language.t("sidebar.help")}
       onOpenHelp={() => platform.openLink("https://opencode.ai/desktop-feedback")}
+      position={settings.general.sidebarPosition()}
       renderPanel={() =>
         mobile ? <SidebarPanel project={currentProject} mobile /> : <SidebarPanel project={currentProject} merged />
       }
@@ -2365,7 +2368,9 @@ export default function Layout(props: ParentProps) {
               classList={{
                 block: desktop(),
                 "hidden xl:block": !desktop(),
-                "absolute inset-y-0 left-0": true,
+                "absolute inset-y-0": true,
+                "left-0": !sidebarRight(),
+                "right-0": sidebarRight(),
                 "z-10": true,
               }}
               style={{ width: `${side()}px` }}
@@ -2392,11 +2397,12 @@ export default function Layout(props: ParentProps) {
                   block: desktop(),
                   "hidden xl:block": !desktop(),
                 }}
-                style={{ left: `${side()}px` }}
+                style={sidebarRight() ? { right: `${side()}px` } : { left: `${side()}px` }}
                 onPointerDown={() => setState("sizing", true)}
               >
                 <ResizeHandle
                   direction="horizontal"
+                  edge={sidebarRight() ? "start" : "end"}
                   size={layout.sidebar.width()}
                   min={244}
                   max={typeof window === "undefined" ? 1000 : Math.max(244, window.innerWidth * 0.3 + 64)}
@@ -2412,11 +2418,13 @@ export default function Layout(props: ParentProps) {
 
             <div
               classList={{
-                "pointer-events-none absolute top-0 right-0 z-0 border-t border-border-weaker-base": true,
+                "pointer-events-none absolute top-0 z-0 border-t border-border-weaker-base": true,
                 block: desktop(),
                 "hidden xl:block": !desktop(),
               }}
-              style={{ left: "calc(4rem + 12px)" }}
+              style={
+                sidebarRight() ? { right: "calc(4rem + 12px)", left: "0" } : { left: "calc(4rem + 12px)", right: "0" }
+              }
             />
 
             <div classList={{ hidden: desktop(), "xl:hidden": !desktop() }}>
@@ -2447,20 +2455,22 @@ export default function Layout(props: ParentProps) {
             <div
               classList={{
                 "absolute inset-0": true,
-                "xl:inset-y-0 xl:right-0 xl:left-[var(--main-left)]": true,
+                "xl:inset-y-0 xl:right-0 xl:left-[var(--main-offset)]": !desktop(),
                 "z-20": true,
-                "transition-[left] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[left] motion-reduce:transition-none":
+                "transition-[left,right] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[left,right] motion-reduce:transition-none":
                   !state.sizing,
               }}
               style={{
-                "--main-left": layout.sidebar.opened() ? `${side()}px` : "4rem",
-                left: desktop() ? "var(--main-left)" : undefined,
+                "--main-offset": layout.sidebar.opened() ? `${side()}px` : "4rem",
+                left: desktop() && !sidebarRight() ? "var(--main-offset)" : undefined,
+                right: sidebarRight() ? "var(--main-offset)" : undefined,
               }}
             >
               <main
                 classList={{
                   "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base bg-background-base": true,
-                  "border-l rounded-tl-[12px]": desktop(),
+                  "border-l rounded-tl-[12px]": desktop() && !sidebarRight(),
+                  "border-r rounded-tr-[12px]": sidebarRight(),
                   "xl:border-l xl:rounded-tl-[12px]": !desktop(),
                 }}
               >
@@ -2472,11 +2482,16 @@ export default function Layout(props: ParentProps) {
 
             <div
               classList={{
-                "absolute inset-y-0 left-16 z-30": true,
+                "absolute inset-y-0 z-30": true,
+                "left-16": !sidebarRight(),
+                "right-16": sidebarRight(),
                 flex: desktop(),
                 "hidden xl:flex": !desktop(),
                 "opacity-100 translate-x-0 pointer-events-auto": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2 pointer-events-none": !state.peeked || layout.sidebar.opened(),
+                "opacity-0 -translate-x-2 pointer-events-none":
+                  (!state.peeked || layout.sidebar.opened()) && !sidebarRight(),
+                "opacity-0 translate-x-2 pointer-events-none":
+                  (!state.peeked || layout.sidebar.opened()) && sidebarRight(),
                 "transition-[opacity,transform] motion-reduce:transition-none": true,
                 "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
                 "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
@@ -2498,16 +2513,19 @@ export default function Layout(props: ParentProps) {
 
             <div
               classList={{
-                "pointer-events-none absolute inset-y-0 right-0 z-25 overflow-hidden": true,
+                "pointer-events-none absolute inset-y-0 z-25 overflow-hidden": true,
+                "right-0": !sidebarRight(),
+                "left-0": sidebarRight(),
                 block: desktop(),
                 "hidden xl:block": !desktop(),
                 "opacity-100 translate-x-0": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2": !state.peeked || layout.sidebar.opened(),
+                "opacity-0 -translate-x-2": (!state.peeked || layout.sidebar.opened()) && !sidebarRight(),
+                "opacity-0 translate-x-2": (!state.peeked || layout.sidebar.opened()) && sidebarRight(),
                 "transition-[opacity,transform] motion-reduce:transition-none": true,
                 "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
                 "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
               }}
-              style={{ left: `calc(4rem + ${panel()}px)` }}
+              style={sidebarRight() ? { right: `calc(4rem + ${panel()}px)` } : { left: `calc(4rem + ${panel()}px)` }}
             >
               <div class="h-full w-px" style={{ "box-shadow": "var(--shadow-sidebar-overlay)" }} />
             </div>

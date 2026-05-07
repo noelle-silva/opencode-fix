@@ -31,6 +31,7 @@ export interface Settings {
     showReasoningSummaries: boolean
     shellToolPartsExpanded: boolean
     editToolPartsExpanded: boolean
+    sidebarPosition: "left" | "right"
   }
   updates: {
     startup: boolean
@@ -115,6 +116,7 @@ const defaultSettings: Settings = {
     showReasoningSummaries: false,
     shellToolPartsExpanded: false,
     editToolPartsExpanded: false,
+    sidebarPosition: "left",
   },
   updates: {
     startup: true,
@@ -148,6 +150,11 @@ function withFallback<T>(read: () => T | undefined, fallback: T) {
   return createMemo(() => read() ?? fallback)
 }
 
+function sidebarPosition(value: Settings["general"]["sidebarPosition"] | undefined) {
+  if (value === "right") return value
+  return "left"
+}
+
 export const { use: useSettings, provider: SettingsProvider } = createSimpleContext({
   name: "Settings",
   init: () => {
@@ -156,7 +163,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
-      root.style.setProperty("--session-font-size", `${store.appearance?.fontSize ?? defaultSettings.appearance.fontSize}px`)
+      root.style.setProperty(
+        "--session-font-size",
+        `${store.appearance?.fontSize ?? defaultSettings.appearance.fontSize}px`,
+      )
       root.style.setProperty("--font-family-mono", monoFontFamily(store.appearance?.mono))
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
     })
@@ -227,6 +237,13 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         ),
         setEditToolPartsExpanded(value: boolean) {
           setStore("general", "editToolPartsExpanded", value)
+        },
+        sidebarPosition: withFallback(
+          () => sidebarPosition(store.general?.sidebarPosition),
+          defaultSettings.general.sidebarPosition,
+        ),
+        setSidebarPosition(value: "left" | "right") {
+          setStore("general", "sidebarPosition", value)
         },
       },
       updates: {

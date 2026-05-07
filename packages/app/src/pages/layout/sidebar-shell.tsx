@@ -31,9 +31,10 @@ export const SidebarContent = (props: {
   helpLabel: Accessor<string>
   onOpenHelp: () => void
   renderPanel: () => JSX.Element
+  position?: "left" | "right"
 }): JSX.Element => {
   const expanded = createMemo(() => !!props.mobile || props.opened())
-  const placement = () => (props.mobile ? "bottom" : "right")
+  const placement = () => (props.mobile ? "bottom" : props.position === "right" ? "left" : "right")
   let panel: HTMLDivElement | undefined
 
   createEffect(() => {
@@ -47,7 +48,10 @@ export const SidebarContent = (props: {
   })
 
   return (
-    <div class="flex h-full w-full min-w-0 overflow-hidden">
+    <div
+      class="flex h-full w-full min-w-0 overflow-hidden"
+      classList={{ "flex-row-reverse": !props.mobile && props.position === "right" }}
+    >
       <div
         data-component="sidebar-rail"
         class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"

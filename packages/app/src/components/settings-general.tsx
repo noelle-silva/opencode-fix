@@ -245,6 +245,11 @@ export const SettingsGeneral: Component = () => {
     { value: "dark", label: language.t("theme.scheme.dark") },
   ])
 
+  const sidebarPositionOptions = createMemo((): { value: "left" | "right"; label: string }[] => [
+    { value: "left", label: language.t("settings.general.row.sidebarPosition.option.left") },
+    { value: "right", label: language.t("settings.general.row.sidebarPosition.option.right") },
+  ])
+
   const languageOptions = createMemo(() =>
     language.locales.map((locale) => ({
       value: locale,
@@ -374,7 +379,6 @@ export const SettingsGeneral: Component = () => {
             />
           </div>
         </SettingsRow>
-
       </SettingsList>
     </div>
   )
@@ -506,6 +510,24 @@ export const SettingsGeneral: Component = () => {
         </SettingsRow>
 
         <Show when={desktop()}>
+          <SettingsRow
+            title={language.t("settings.general.row.sidebarPosition.title")}
+            description={language.t("settings.general.row.sidebarPosition.description")}
+          >
+            <Select
+              data-action="settings-sidebar-position"
+              options={sidebarPositionOptions()}
+              current={sidebarPositionOptions().find((o) => o.value === settings.general.sidebarPosition())}
+              value={(o) => o.value}
+              label={(o) => o.label}
+              onSelect={(option) => option && settings.general.setSidebarPosition(option.value)}
+              variant="secondary"
+              size="small"
+              triggerVariant="settings"
+              triggerStyle={{ "min-width": "160px" }}
+            />
+          </SettingsRow>
+
           <SettingsRow
             title={language.t("settings.general.row.fontSize.title")}
             description={language.t("settings.general.row.fontSize.description")}

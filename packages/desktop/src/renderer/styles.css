@@ -10,19 +10,16 @@ html[data-platform="desktop"] {
   --shadow-lg-border-base: var(--shadow-lg);
 }
 
-html[data-platform="desktop"]
-  :where(
-    [class~="border"],
-    [class~="border-2"],
-    [class~="border-x"],
-    [class~="border-y"],
-    [class~="border-t"],
-    [class~="border-r"],
-    [class~="border-b"],
-    [class~="border-l"],
-    [class~="sm:border-l"],
-    [class~="md:border-l"],
-    [class~="xl:border-l"]
-  ) {
+html[data-platform="desktop"] *,
+html[data-platform="desktop"] *::before,
+html[data-platform="desktop"] *::after {
   border-color: transparent !important;
+  outline-color: transparent !important;
+}
+
+html[data-platform="desktop"]
+  :where([data-slot="compaction-part-line"], [data-slot="list-item-divider"], [class~="w-px"], [class~="h-px"]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
