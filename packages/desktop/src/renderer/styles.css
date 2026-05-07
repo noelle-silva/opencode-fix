@@ -1,0 +1,28 @@
+html[data-platform="desktop"] {
+  --shadow-xxs-border: none;
+  --shadow-xs-border: var(--shadow-xs);
+  --shadow-xs-border-base: var(--shadow-xs);
+  --shadow-xs-border-hover: var(--shadow-xs);
+  --shadow-xs-border-select: var(--shadow-xs);
+  --shadow-xs-border-focus: var(--shadow-xs);
+  --shadow-xs-border-critical-base: var(--shadow-xs);
+  --shadow-xs-border-critical-focus: var(--shadow-xs);
+  --shadow-lg-border-base: var(--shadow-lg);
+}
+
+html[data-platform="desktop"]
+  :where(
+    [class~="border"],
+    [class~="border-2"],
+    [class~="border-x"],
+    [class~="border-y"],
+    [class~="border-t"],
+    [class~="border-r"],
+    [class~="border-b"],
+    [class~="border-l"],
+    [class~="sm:border-l"],
+    [class~="md:border-l"],
+    [class~="xl:border-l"]
+  ) {
+  border-color: transparent !important;
+}
