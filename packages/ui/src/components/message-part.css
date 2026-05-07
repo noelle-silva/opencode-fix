@@ -9,7 +9,7 @@
 
 [data-component="user-message"] {
   font-family: var(--font-family-sans);
-  font-size: var(--font-size-base);
+  font-size: var(--session-font-size, var(--font-size-base));
   font-style: normal;
   font-weight: var(--font-weight-regular);
   line-height: var(--line-height-large);
@@ -108,7 +108,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-base);
-    font-size: var(--font-size-small);
+    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
     line-height: var(--line-height-large);
   }
 

@@ -158,6 +158,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
+      root.style.setProperty("--session-font-size", `${store.appearance?.fontSize ?? defaultSettings.appearance.fontSize}px`)
       root.style.setProperty("--font-family-mono", monoFontFamily(store.appearance?.mono))
       root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
     })

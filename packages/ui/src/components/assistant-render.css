@@ -4,7 +4,7 @@
   overflow-wrap: anywhere;
   color: var(--text-strong);
   font-family: var(--font-family-sans);
-  font-size: var(--font-size-base);
+  font-size: var(--session-font-size, var(--font-size-base));
   line-height: 1.75;
 
   > *:first-child {
@@ -23,7 +23,7 @@
   h6 {
     margin: 0 0 18px;
     color: var(--text-strong);
-    font-size: 14px;
+    font-size: var(--session-font-size, var(--font-size-base));
     font-weight: var(--font-weight-medium);
     line-height: var(--line-height-large);
   }
@@ -88,7 +88,7 @@
     display: block;
     padding: 12px;
     font-family: var(--font-family-mono);
-    font-size: 13px;
+    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
     line-height: var(--line-height-large);
     white-space: pre;
   }
@@ -137,7 +137,7 @@
     margin: 24px 0;
     overflow-x: auto;
     border-collapse: collapse;
-    font-size: var(--font-size-base);
+    font-size: var(--session-font-size, var(--font-size-base));
   }
 
   th,

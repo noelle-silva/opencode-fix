@@ -516,6 +516,30 @@ export const SettingsGeneral: Component = () => {
           />
         </SettingsRow>
 
+        <Show when={desktop()}>
+          <SettingsRow
+            title={language.t("settings.general.row.fontSize.title")}
+            description={language.t("settings.general.row.fontSize.description")}
+          >
+            <div class="flex items-center gap-3 w-full sm:w-[220px]">
+              <input
+                data-action="settings-font-size"
+                type="range"
+                min="12"
+                max="18"
+                step="1"
+                value={settings.appearance.fontSize()}
+                onInput={(event) => settings.appearance.setFontSize(Number(event.currentTarget.value))}
+                class="w-full accent-[color:var(--text-interactive-base)]"
+                aria-label={language.t("settings.general.row.fontSize.title")}
+              />
+              <span class="text-12-regular tabular-nums text-text-weak w-10 text-right">
+                {settings.appearance.fontSize()}px
+              </span>
+            </div>
+          </SettingsRow>
+        </Show>
+
         <SettingsRow
           title={language.t("settings.general.row.uiFont.title")}
           description={language.t("settings.general.row.uiFont.description")}

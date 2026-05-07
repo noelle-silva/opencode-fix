@@ -632,6 +632,8 @@ export const dict = {
   "settings.general.row.colorScheme.description": "选择 OpenCode 跟随系统、浅色或深色主题",
   "settings.general.row.theme.title": "主题",
   "settings.general.row.theme.description": "自定义 OpenCode 的主题。",
+  "settings.general.row.fontSize.title": "界面字体大小",
+  "settings.general.row.fontSize.description": "调整整个界面中文字的大小",
   "settings.general.row.font.title": "代码字体",
   "settings.general.row.font.description": "自定义代码块使用的字体",
   "settings.general.row.terminalFont.title": "Terminal Font",
