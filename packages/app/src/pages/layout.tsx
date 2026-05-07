@@ -2013,6 +2013,7 @@ export default function Layout(props: ParentProps) {
       navList: currentSessions,
       sidebarExpanded,
       clearHoverProjectSoon,
+      sidebarHovering,
       prefetchSession,
       archiveSession,
     },
