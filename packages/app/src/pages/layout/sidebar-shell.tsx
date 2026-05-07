@@ -1,4 +1,4 @@
-import { createEffect, createMemo, For, Show, type Accessor, type JSX } from "solid-js"
+import { createMemo, For, Show, type Accessor, type JSX } from "solid-js"
 import {
   DragDropProvider,
   DragDropSensors,
@@ -30,17 +30,6 @@ export const SidebarContent = (props: {
 }): JSX.Element => {
   const expanded = createMemo(() => !!props.mobile || props.opened())
   const placement = () => (props.mobile ? "bottom" : props.position === "right" ? "left" : "right")
-  let panel: HTMLDivElement | undefined
-
-  createEffect(() => {
-    const el = panel
-    if (!el) return
-    if (expanded()) {
-      el.removeAttribute("inert")
-      return
-    }
-    el.setAttribute("inert", "")
-  })
 
   return (
     <div
@@ -90,15 +79,9 @@ export const SidebarContent = (props: {
         </div>
       </div>
 
-      <div
-        ref={(el) => {
-          panel = el
-        }}
-        classList={{ "flex-1 flex h-full min-h-0 min-w-0 overflow-hidden": true, "pointer-events-none": !expanded() }}
-        aria-hidden={!expanded()}
-      >
-        {props.renderPanel()}
-      </div>
+      <Show when={expanded()}>
+        <div class="flex-1 flex h-full min-h-0 min-w-0 overflow-hidden">{props.renderPanel()}</div>
+      </Show>
     </div>
   )
 }

@@ -8,7 +8,7 @@ export const WallpaperLayer: Component = () => {
   )
 
   return (
-    <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] bg-background-base">
+    <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] bg-white">
       <div
         class="absolute inset-0 bg-background-base transition-opacity duration-200"
         classList={{ "opacity-0": !!wallpaper(), "opacity-100": !wallpaper() }}
@@ -17,19 +17,18 @@ export const WallpaperLayer: Component = () => {
         src={wallpaper()?.dataUrl ?? ""}
         alt=""
         classList={{
-          "absolute left-1/2 top-1/2 max-w-none select-none transition-opacity duration-200": true,
-          "h-full w-full object-cover": wallpaper()?.fit !== "contain",
-          "max-h-full max-w-full object-contain": wallpaper()?.fit === "contain",
+          "absolute left-1/2 top-1/2 max-h-full max-w-full select-none transition-opacity duration-200": true,
           "opacity-100": !!wallpaper(),
           "opacity-0": !wallpaper(),
         }}
         style={{
+          opacity: wallpaper()?.opacity ?? 0,
+          filter: `blur(${wallpaper()?.blur ?? 0}px)`,
           transform: wallpaper()
             ? `translate(calc(-50% + ${wallpaper()!.x}px), calc(-50% + ${wallpaper()!.y}px)) scale(${wallpaper()!.scale})`
             : "translate(-50%, -50%)",
         }}
       />
-      <div class="absolute inset-0 bg-background-base/72 backdrop-blur-[1px]" classList={{ hidden: !wallpaper() }} />
     </div>
   )
 }

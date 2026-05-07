@@ -358,6 +358,7 @@ export default function Page() {
   })
 
   const composer = createSessionComposerState()
+  const wallpaperActive = createMemo(() => !!settings.wallpapers.active())
 
   const workspaceKey = createMemo(() => params.dir ?? "")
   const workspaceTabs = createMemo(() => layout.tabs(workspaceKey))
@@ -1809,7 +1810,12 @@ export default function Page() {
   })
 
   return (
-    <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
+    <div
+      classList={{
+        "relative size-full overflow-hidden flex flex-col": true,
+        "bg-background-base": !wallpaperActive(),
+      }}
+    >
       {sessionSync() ?? ""}
       <SessionHeader />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
@@ -1841,7 +1847,8 @@ export default function Page() {
         {/* Session panel */}
         <div
           classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full bg-background-stronger flex-1 md:flex-none": true,
+            "@container relative shrink-0 flex flex-col min-h-0 h-full flex-1 md:flex-none": true,
+            "bg-background-stronger": !wallpaperActive(),
             "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
               !size.active() && !ui.reviewSnap,
           }}

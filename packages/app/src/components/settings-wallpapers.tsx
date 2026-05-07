@@ -1,6 +1,5 @@
 import { Button } from "@opencode-ai/ui/button"
 import { Icon } from "@opencode-ai/ui/icon"
-import { Select } from "@opencode-ai/ui/select"
 import { showToast } from "@opencode-ai/ui/toast"
 import { createMemo, For, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -11,7 +10,6 @@ import { SettingsList } from "./settings-list"
 import { SettingsRow } from "./settings-row"
 
 const imageExtensions = ["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp", "svg"]
-const fitOptions = ["cover", "contain"] as const
 
 function fileName(path: string) {
   return path.split(/[\\/]/).at(-1) || path
@@ -36,11 +34,7 @@ export const SettingsWallpapers: Component = () => {
 
   const desktop = createMemo(() => platform.platform === "desktop" && platform.openFilePickerDialog && platform.readImageFile)
   const items = createMemo(() => settings.wallpapers.items())
-  const active = createMemo(() => items().find((item) => item.id === settings.wallpapers.active()) ?? null)
-  const current = createMemo(() => store.preview ?? active())
-  const fitSelectOptions = createMemo(() =>
-    fitOptions.map((value) => ({ value, label: language.t(`settings.wallpapers.fit.${value}`) })),
-  )
+  const current = createMemo(() => store.preview)
 
   const setPreview = (patch: Partial<WallpaperSettingsItem>) => {
     if (!current()) return
@@ -69,7 +63,9 @@ export const SettingsWallpapers: Component = () => {
       x: 0,
       y: 0,
       scale: 1,
-      fit: "cover",
+      fit: "contain",
+      opacity: 1,
+      blur: 0,
     } satisfies WallpaperSettingsItem
 
     setStore({ editing: next.id, preview: next, dragging: false, dragX: 0, dragY: 0 })
@@ -209,7 +205,7 @@ export const SettingsWallpapers: Component = () => {
 
               <div class="overflow-hidden rounded-xl border border-border-weak-base bg-surface-base p-3">
                 <div
-                  class="relative h-[360px] cursor-grab overflow-hidden rounded-lg bg-surface-raised-base active:cursor-grabbing"
+                  class="relative h-[360px] cursor-grab overflow-hidden rounded-lg bg-white active:cursor-grabbing"
                   role="application"
                   aria-label={language.t("settings.wallpapers.editor.ariaLabel")}
                   onPointerDown={pointerDown}
@@ -221,13 +217,11 @@ export const SettingsWallpapers: Component = () => {
                     src={item().dataUrl}
                     alt={item().name}
                     draggable={false}
-                    classList={{
-                      "absolute left-1/2 top-1/2 max-w-none select-none object-cover": true,
-                      "h-full w-full": item().fit === "cover",
-                      "max-h-full max-w-full": item().fit === "contain",
-                    }}
+                    class="absolute left-1/2 top-1/2 max-h-full max-w-full select-none"
                     style={{
                       transform: `translate(calc(-50% + ${item().x}px), calc(-50% + ${item().y}px)) scale(${item().scale})`,
+                      opacity: item().opacity,
+                      filter: `blur(${item().blur}px)`,
                     }}
                   />
                   <div class="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-white/10" />
@@ -237,20 +231,43 @@ export const SettingsWallpapers: Component = () => {
                   <span>{language.t("settings.wallpapers.editor.hint")}</span>
                   <div class="flex items-center gap-3">
                     <span>{Math.round(item().scale * 100)}%</span>
-                    <Select
-                      options={fitSelectOptions()}
-                      current={fitSelectOptions().find((option) => option.value === item().fit)}
-                      value={(option) => option.value}
-                      label={(option) => option.label}
-                      onSelect={(option) => option && setPreview({ fit: option.value })}
-                      variant="secondary"
-                      size="small"
-                      triggerVariant="settings"
-                    />
                     <Button size="small" variant="ghost" onClick={() => setPreview({ x: 0, y: 0, scale: 1 })}>
                       {language.t("common.reset")}
                     </Button>
                   </div>
+                </div>
+
+                <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label class="flex flex-col gap-1 text-12-regular text-text-weak">
+                    <span class="flex items-center justify-between gap-3">
+                      <span>{language.t("settings.wallpapers.editor.opacity")}</span>
+                      <span>{Math.round(item().opacity * 100)}%</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={item().opacity}
+                      onInput={(event) => setPreview({ opacity: Number(event.currentTarget.value) })}
+                      class="w-full accent-[color:var(--text-interactive-base)]"
+                    />
+                  </label>
+                  <label class="flex flex-col gap-1 text-12-regular text-text-weak">
+                    <span class="flex items-center justify-between gap-3">
+                      <span>{language.t("settings.wallpapers.editor.blur")}</span>
+                      <span>{item().blur}px</span>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="40"
+                      step="1"
+                      value={item().blur}
+                      onInput={(event) => setPreview({ blur: Number(event.currentTarget.value) })}
+                      class="w-full accent-[color:var(--text-interactive-base)]"
+                    />
+                  </label>
                 </div>
               </div>
             </div>

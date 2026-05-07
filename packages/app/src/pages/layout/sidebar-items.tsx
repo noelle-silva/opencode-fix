@@ -26,7 +26,12 @@ export function getProjectAvatarSource(id?: string, icon?: { color?: string; url
   return icon?.url
 }
 
-export const ProjectIcon = (props: { project: LocalProject; class?: string; notify?: boolean }): JSX.Element => {
+export const ProjectIcon = (props: {
+  project: LocalProject
+  class?: string
+  notify?: boolean
+  selected?: boolean
+}): JSX.Element => {
   const globalSync = useGlobalSync()
   const notification = useNotification()
   const permission = usePermission()
@@ -45,7 +50,10 @@ export const ProjectIcon = (props: { project: LocalProject; class?: string; noti
   const name = createMemo(() => props.project.name || getFilename(props.project.worktree))
 
   return (
-    <div class={`relative size-8 shrink-0 rounded ${props.class ?? ""}`}>
+    <div
+      class={`relative size-8 shrink-0 rounded ${props.class ?? ""}`}
+      classList={{ "outline outline-2 outline-[#000] outline-offset-1": props.selected }}
+    >
       <div class="size-full rounded overflow-clip">
         <Avatar
           fallback={name()}

@@ -101,7 +101,7 @@ const ProjectTile = (props: {
         data-project={base64Encode(props.project.worktree)}
         classList={{
           "flex items-center justify-center size-10 p-1 rounded-lg overflow-hidden transition-colors cursor-default": true,
-          "bg-transparent border-2 border-icon-strong-base hover:bg-surface-base-hover": props.selected(),
+          "bg-transparent border border-transparent hover:bg-surface-base-hover": props.selected(),
           "bg-transparent border border-transparent hover:bg-surface-base-hover hover:border-border-weak-base":
             !props.selected() && !props.active(),
           "bg-surface-base-hover border border-border-weak-base": !props.selected() && props.active(),
@@ -143,7 +143,7 @@ const ProjectTile = (props: {
         }}
         onBlur={() => props.setOpen(false)}
       >
-        <ProjectIcon project={props.project} notify />
+        <ProjectIcon project={props.project} notify selected={props.selected()} />
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content>

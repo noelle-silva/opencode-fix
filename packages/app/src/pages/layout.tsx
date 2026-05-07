@@ -1813,6 +1813,7 @@ export default function Layout(props: ParentProps) {
   const side = createMemo(() => Math.max(layout.sidebar.width(), 244))
   const panel = createMemo(() => Math.max(side() - 64, 0))
   const sidebarRight = createMemo(() => desktop() && settings.general.sidebarPosition() === "right")
+  const sidebarNavWidth = createMemo(() => (layout.sidebar.opened() ? side() : 64))
 
   const loadedSessionDirs = new Set<string>()
 
@@ -2370,7 +2371,7 @@ export default function Layout(props: ParentProps) {
                 "right-0": sidebarRight(),
                 "z-10": true,
               }}
-              style={{ width: `${side()}px` }}
+              style={{ width: `${sidebarNavWidth()}px` }}
               ref={(el) => {
                 setState("nav", el)
               }}
@@ -2465,7 +2466,7 @@ export default function Layout(props: ParentProps) {
             >
               <main
                 classList={{
-                  "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base bg-background-base": true,
+                  "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base relative": true,
                   "border-l rounded-tl-[12px]": desktop() && !sidebarRight(),
                   "border-r rounded-tr-[12px]": sidebarRight(),
                   "xl:border-l xl:rounded-tl-[12px]": !desktop(),
@@ -2473,60 +2474,46 @@ export default function Layout(props: ParentProps) {
               >
                 <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
                   <WallpaperLayer />
-                  <div class="relative z-10 size-full">{props.children}</div>
+                  <div class="relative z-10 size-full min-h-0">{props.children}</div>
                 </Show>
               </main>
             </div>
 
-            <div
-              classList={{
-                "absolute inset-y-0 z-30": true,
-                "left-16": !sidebarRight(),
-                "right-16": sidebarRight(),
-                flex: desktop(),
-                "hidden xl:flex": !desktop(),
-                "opacity-100 translate-x-0 pointer-events-auto": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2 pointer-events-none":
-                  (!state.peeked || layout.sidebar.opened()) && !sidebarRight(),
-                "opacity-0 translate-x-2 pointer-events-none":
-                  (!state.peeked || layout.sidebar.opened()) && sidebarRight(),
-                "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
-              }}
-              onMouseMove={disarm}
-              onMouseEnter={() => {
-                disarm()
-                aim.reset()
-              }}
-              onPointerDown={disarm}
-              onMouseLeave={() => {
-                arm()
-              }}
-            >
-              <Show when={peekProject()}>
+            <Show when={state.peeked && !layout.sidebar.opened() && peekProject()}>
+              <div
+                classList={{
+                  "absolute inset-y-0 z-30": true,
+                  "left-16": !sidebarRight(),
+                  "right-16": sidebarRight(),
+                  flex: desktop(),
+                  "hidden xl:flex": !desktop(),
+                }}
+                onMouseMove={disarm}
+                onMouseEnter={() => {
+                  disarm()
+                  aim.reset()
+                }}
+                onPointerDown={disarm}
+                onMouseLeave={() => {
+                  arm()
+                }}
+              >
                 <SidebarPanel project={peekProject} merged={false} />
-              </Show>
-            </div>
+              </div>
 
-            <div
-              classList={{
-                "pointer-events-none absolute inset-y-0 z-25 overflow-hidden": true,
-                "right-0": !sidebarRight(),
-                "left-0": sidebarRight(),
-                block: desktop(),
-                "hidden xl:block": !desktop(),
-                "opacity-100 translate-x-0": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2": (!state.peeked || layout.sidebar.opened()) && !sidebarRight(),
-                "opacity-0 translate-x-2": (!state.peeked || layout.sidebar.opened()) && sidebarRight(),
-                "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
-              }}
-              style={sidebarRight() ? { right: `calc(4rem + ${panel()}px)` } : { left: `calc(4rem + ${panel()}px)` }}
-            >
-              <div class="h-full w-px" style={{ "box-shadow": "var(--shadow-sidebar-overlay)" }} />
-            </div>
+              <div
+                classList={{
+                  "pointer-events-none absolute inset-y-0 z-25 overflow-hidden": true,
+                  "right-0": !sidebarRight(),
+                  "left-0": sidebarRight(),
+                  block: desktop(),
+                  "hidden xl:block": !desktop(),
+                }}
+                style={sidebarRight() ? { right: `calc(4rem + ${panel()}px)` } : { left: `calc(4rem + ${panel()}px)` }}
+              >
+                <div class="h-full w-px" style={{ "box-shadow": "var(--shadow-sidebar-overlay)" }} />
+              </div>
+            </Show>
           </div>
         </div>
       </div>

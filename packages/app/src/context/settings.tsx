@@ -29,6 +29,8 @@ export interface WallpaperSettingsItem {
   y: number
   scale: number
   fit: WallpaperFit
+  opacity: number
+  blur: number
 }
 
 export interface Settings {
@@ -176,11 +178,6 @@ function sidebarPosition(value: Settings["general"]["sidebarPosition"] | undefin
   return "left"
 }
 
-function wallpaperFit(value: WallpaperSettingsItem["fit"] | undefined) {
-  if (value === "contain") return value
-  return "cover"
-}
-
 function wallpaperItem(value: WallpaperSettingsItem): WallpaperSettingsItem {
   return {
     id: value.id,
@@ -190,7 +187,9 @@ function wallpaperItem(value: WallpaperSettingsItem): WallpaperSettingsItem {
     x: Number.isFinite(value.x) ? value.x : 0,
     y: Number.isFinite(value.y) ? value.y : 0,
     scale: Number.isFinite(value.scale) ? Math.max(0.2, Math.min(5, value.scale)) : 1,
-    fit: wallpaperFit(value.fit),
+    fit: "contain",
+    opacity: Number.isFinite(value.opacity) ? Math.max(0, Math.min(1, value.opacity)) : 1,
+    blur: Number.isFinite(value.blur) ? Math.max(0, Math.min(40, value.blur)) : 0,
   }
 }
 

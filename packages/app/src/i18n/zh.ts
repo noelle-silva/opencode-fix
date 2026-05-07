@@ -695,7 +695,7 @@ export const dict = {
   "settings.storage.toast.failed.title": "更新存储位置失败",
   "settings.storage.webHint": "只有桌面应用或 CLI 可以修改数据存储位置。",
   "settings.wallpapers.title": "壁纸",
-  "settings.wallpapers.description": "选择本地图片，通过拖拽和滚轮缩放取景，然后在多个已保存壁纸之间切换。",
+  "settings.wallpapers.description": "选择本地图片，通过拖拽和滚轮缩放取景，调整透明度与模糊后在多个已保存壁纸之间切换。",
   "settings.wallpapers.section.library": "壁纸库",
   "settings.wallpapers.section.editor": "壁纸取景",
   "settings.wallpapers.row.active.title": "当前壁纸",
@@ -711,6 +711,8 @@ export const dict = {
   "settings.wallpapers.toast.failed.title": "无法加载壁纸图片",
   "settings.wallpapers.editor.ariaLabel": "壁纸取景预览",
   "settings.wallpapers.editor.hint": "拖拽移动图片，使用鼠标滚轮缩放。",
+  "settings.wallpapers.editor.opacity": "透明度",
+  "settings.wallpapers.editor.blur": "模糊程度",
   "settings.wallpapers.fit.cover": "铺满",
   "settings.wallpapers.fit.contain": "完整显示",
 
