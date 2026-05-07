@@ -39,7 +39,7 @@ const titlebarHeight = 40
 const minTitlebarZoom = 0.25
 const windowsControlsBaseWidth = 138 // 3 native Windows caption buttons at 46px each.
 
-export function Titlebar() {
+export function Titlebar(props: { onOpenSettings: () => void; onOpenHelp: () => void }) {
   const layout = useLayout()
   const platform = usePlatform()
   const command = useCommand()
@@ -343,7 +343,31 @@ export function Titlebar() {
           data-tauri-drag-region
           onMouseDown={drag}
         >
-          <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
+          <div class="flex items-center gap-1 shrink-0 justify-end">
+            <TooltipKeybind
+              placement="bottom"
+              title={language.t("sidebar.settings")}
+              keybind={command.keybind("settings.open") ?? ""}
+            >
+              <IconButton
+                icon="settings-gear"
+                variant="ghost"
+                class="titlebar-icon rounded-md"
+                onClick={props.onOpenSettings}
+                aria-label={language.t("sidebar.settings")}
+              />
+            </TooltipKeybind>
+            <Tooltip placement="bottom" value={language.t("sidebar.help")}>
+              <IconButton
+                icon="help"
+                variant="ghost"
+                class="titlebar-icon rounded-md"
+                onClick={props.onOpenHelp}
+                aria-label={language.t("sidebar.help")}
+              />
+            </Tooltip>
+            <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
+          </div>
           <Show when={windows()}>
             {!tauriApi() && <div class="shrink-0" style={{ width: windowsControlsWidth() }} />}
             <div data-tauri-decorum-tb class="flex flex-row" />

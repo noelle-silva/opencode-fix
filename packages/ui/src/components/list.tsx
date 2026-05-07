@@ -40,6 +40,7 @@ export interface ListProps<T> extends FilteredListProps<T> {
   onKeyEvent?: (event: KeyboardEvent, item: T | undefined) => void
   onMove?: (item: T | undefined) => void
   onFilter?: (value: string) => void
+  selectOnPointerDown?: boolean
   activeIcon?: IconProps["name"]
   filter?: string
   search?: ListSearchProps | boolean
@@ -341,7 +342,13 @@ export function List<T>(props: ListProps<T> & { ref?: (ref: ListRef) => void }) 
                             data-key={props.key(item)}
                             data-active={props.key(item) === active()}
                             data-selected={item === props.current}
-                            onClick={() => handleSelect(item, i())}
+                            onPointerDown={() => {
+                              if (props.selectOnPointerDown) handleSelect(item, i())
+                            }}
+                            onClick={(event) => {
+                              if (props.selectOnPointerDown && event.detail > 0) return
+                              handleSelect(item, i())
+                            }}
                             onKeyDown={handleKey}
                             type="button"
                             onMouseMove={(event) => {

@@ -2341,11 +2341,6 @@ export default function Layout(props: ParentProps) {
       openProjectKeybind={() => command.keybind("project.open")}
       onOpenProject={chooseProject}
       renderProjectOverlay={projectOverlay}
-      settingsLabel={() => language.t("sidebar.settings")}
-      settingsKeybind={() => command.keybind("settings.open")}
-      onOpenSettings={openSettings}
-      helpLabel={() => language.t("sidebar.help")}
-      onOpenHelp={() => platform.openLink("https://opencode.ai/desktop-feedback")}
       position={settings.general.sidebarPosition()}
       renderPanel={() =>
         mobile ? <SidebarPanel project={currentProject} mobile /> : <SidebarPanel project={currentProject} merged />
@@ -2356,7 +2351,10 @@ export default function Layout(props: ParentProps) {
   return (
     <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
       {autoselecting() ?? ""}
-      <Titlebar />
+      <Titlebar
+        onOpenSettings={openSettings}
+        onOpenHelp={() => platform.openLink("https://opencode.ai/desktop-feedback")}
+      />
       <div class="flex-1 min-h-0 min-w-0 flex">
         <div class="flex-1 min-h-0 relative">
           <div class="size-full relative overflow-x-hidden">
