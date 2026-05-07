@@ -25,7 +25,6 @@ export function createMenu(deps: Deps) {
         },
         {
           label: "Settings",
-          accelerator: "Cmd+,",
           click: () => deps.trigger("settings.open"),
         },
         {
@@ -47,11 +46,10 @@ export function createMenu(deps: Deps) {
     {
       label: "File",
       submenu: [
-        { label: "New Session", accelerator: "Shift+Cmd+S", click: () => deps.trigger("session.new") },
-        { label: "Open Project...", accelerator: "Cmd+O", click: () => deps.trigger("project.open") },
+        { label: "New Session", click: () => deps.trigger("session.new") },
+        { label: "Open Project...", click: () => deps.trigger("project.open") },
         {
           label: "New Window",
-          accelerator: "Cmd+Shift+N",
           click: () => createMainWindow(),
         },
         { type: "separator" },
@@ -73,8 +71,8 @@ export function createMenu(deps: Deps) {
     {
       label: "View",
       submenu: [
-        { label: "Toggle Sidebar", accelerator: "Cmd+B", click: () => deps.trigger("sidebar.toggle") },
-        { label: "Toggle Terminal", accelerator: "Ctrl+`", click: () => deps.trigger("terminal.toggle") },
+        { label: "Toggle Sidebar", click: () => deps.trigger("sidebar.toggle") },
+        { label: "Toggle Terminal", click: () => deps.trigger("terminal.toggle") },
         { label: "Toggle File Tree", click: () => deps.trigger("fileTree.toggle") },
         { type: "separator" },
         { role: "reload" },
@@ -90,28 +88,24 @@ export function createMenu(deps: Deps) {
     {
       label: "Go",
       submenu: [
-        { label: "Back", accelerator: "Cmd+[", click: () => deps.trigger("common.goBack") },
-        { label: "Forward", accelerator: "Cmd+]", click: () => deps.trigger("common.goForward") },
+        { label: "Back", click: () => deps.trigger("common.goBack") },
+        { label: "Forward", click: () => deps.trigger("common.goForward") },
         { type: "separator" },
         {
           label: "Previous Session",
-          accelerator: "Option+Up",
           click: () => deps.trigger("session.previous"),
         },
         {
           label: "Next Session",
-          accelerator: "Option+Down",
           click: () => deps.trigger("session.next"),
         },
         { type: "separator" },
         {
           label: "Previous Project",
-          accelerator: "Cmd+Option+Up",
           click: () => deps.trigger("project.previous"),
         },
         {
           label: "Next Project",
-          accelerator: "Cmd+Option+Down",
           click: () => deps.trigger("project.next"),
         },
       ],
