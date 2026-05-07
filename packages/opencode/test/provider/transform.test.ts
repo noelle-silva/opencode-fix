@@ -1336,6 +1336,35 @@ describe("ProviderTransform.message - empty image handling", () => {
       text: "ERROR: Image file is empty or corrupted. Please provide a valid image.",
     })
   })
+
+  test("should not block image input from stale local capabilities", () => {
+    const msgs = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "What is in this image?" },
+          { type: "file", mediaType: "image/png", data: "data:image/png;base64,AAECAw==", filename: "image.png" },
+        ],
+      },
+    ] as any[]
+    const model = {
+      ...mockModel,
+      capabilities: {
+        ...mockModel.capabilities,
+        attachment: false,
+        input: { ...mockModel.capabilities.input, image: false },
+      },
+    }
+
+    const result = ProviderTransform.message(msgs, model, {}) as any[]
+
+    expect(result[0].content[1]).toEqual({
+      type: "file",
+      mediaType: "image/png",
+      data: "data:image/png;base64,AAECAw==",
+      filename: "image.png",
+    })
+  })
 })
 
 describe("ProviderTransform.message - anthropic empty content filtering", () => {

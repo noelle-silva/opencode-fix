@@ -4,10 +4,11 @@ import {
   type SharedV3Warning,
   UnsupportedFunctionalityError,
 } from "@ai-sdk/provider"
-import { convertToBase64, parseProviderOptions } from "@ai-sdk/provider-utils"
+import { parseProviderOptions } from "@ai-sdk/provider-utils"
 import { z } from "zod/v4"
 import type { OpenAIResponsesInput, OpenAIResponsesReasoning } from "./openai-responses-api-types"
 import { localShellInputSchema, localShellOutputSchema } from "./tool/local-shell"
+import { toDataUrl } from "../data-url"
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -84,9 +85,11 @@ export async function convertToOpenAIResponsesInput({
                       : typeof part.data === "string" && isFileId(part.data, fileIdPrefixes)
                         ? { file_id: part.data }
                         : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                            image_url: toDataUrl(mediaType, part.data),
                           }),
-                    detail: part.providerOptions?.openai?.imageDetail,
+                    ...(typeof part.providerOptions?.openai?.imageDetail === "string"
+                      ? { detail: part.providerOptions.openai.imageDetail }
+                      : {}),
                   }
                 } else if (part.mediaType === "application/pdf") {
                   if (part.data instanceof URL) {
@@ -101,7 +104,7 @@ export async function convertToOpenAIResponsesInput({
                       ? { file_id: part.data }
                       : {
                           filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          file_data: toDataUrl("application/pdf", part.data),
                         }),
                   }
                 } else {

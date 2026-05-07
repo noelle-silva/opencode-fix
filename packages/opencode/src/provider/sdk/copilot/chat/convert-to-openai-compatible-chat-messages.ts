@@ -4,7 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from "@ai-sdk/provider"
 import type { OpenAICompatibleChatPrompt } from "./openai-compatible-api-types"
-import { convertToBase64 } from "@ai-sdk/provider-utils"
+import { toDataUrl } from "../data-url"
 
 function getOpenAIMetadata(message: { providerOptions?: SharedV3ProviderOptions }) {
   return message?.providerOptions?.copilot ?? {}
@@ -52,7 +52,7 @@ export function convertToOpenAICompatibleChatMessages(prompt: LanguageModelV3Pro
                       url:
                         part.data instanceof URL
                           ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                          : toDataUrl(mediaType, part.data),
                     },
                     ...partMetadata,
                   }

@@ -60,6 +60,35 @@ describe("user messages", () => {
     ])
   })
 
+  test("should preserve data URL image parts", () => {
+    const result = convertToCopilotMessages([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Hello" },
+          {
+            type: "file",
+            data: "data:image/png;base64,AAECAw==",
+            mediaType: "image/png",
+          },
+        ],
+      },
+    ])
+
+    expect(result).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Hello" },
+          {
+            type: "image_url",
+            image_url: { url: "data:image/png;base64,AAECAw==" },
+          },
+        ],
+      },
+    ])
+  })
+
   test("should convert messages with image parts from Uint8Array", () => {
     const result = convertToCopilotMessages([
       {

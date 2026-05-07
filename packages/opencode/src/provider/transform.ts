@@ -17,6 +17,12 @@ function mimeToModality(mime: string): Modality | undefined {
   return undefined
 }
 
+function supportsInputModality(model: Provider.Model, modality: Modality) {
+  if (modality === "image") return true
+  if (model.capabilities.input[modality]) return true
+  return false
+}
+
 export const OUTPUT_TOKEN_MAX = Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
 
 export function sanitizeSurrogates(content: string) {
@@ -401,7 +407,7 @@ function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMes
       const filename = part.type === "file" ? part.filename : undefined
       const modality = mimeToModality(mime)
       if (!modality) return part
-      if (model.capabilities.input[modality]) return part
+      if (supportsInputModality(model, modality)) return part
 
       const name = filename ? `"${filename}"` : modality
       return {
