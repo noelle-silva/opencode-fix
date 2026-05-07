@@ -29,6 +29,7 @@ import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { ModelSelectorPopover } from "@/components/dialog-select-model"
+import { SessionContextUsage } from "@/components/session-context-usage"
 import { useProviders } from "@/hooks/use-providers"
 import { useCommand } from "@/context/command"
 import { Persist, persisted } from "@/utils/persist"
@@ -1428,6 +1429,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   variant="ghost"
                 />
               </TooltipKeybind>
+            </div>
+          </Show>
+          <Show when={isDesktop()}>
+            <div data-component="prompt-context-usage-control" class="min-w-0 shrink-0">
+              <SessionContextUsage variant="inline" />
             </div>
           </Show>
         </Show>

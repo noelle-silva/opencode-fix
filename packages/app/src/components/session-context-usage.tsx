@@ -13,7 +13,7 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 
 interface SessionContextUsageProps {
-  variant?: "button" | "indicator"
+  variant?: "button" | "indicator" | "inline"
   placement?: TooltipProps["placement"]
 }
 
@@ -56,6 +56,12 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
   const context = createMemo(() => metrics().context)
   const cost = createMemo(() => {
     return usd().format(metrics().totalCost)
+  })
+  const tokenLabel = createMemo(() => {
+    const total = context()?.total ?? 0
+    return `${new Intl.NumberFormat(language.intl(), {
+      maximumFractionDigits: total < 10_000 ? 1 : 0,
+    }).format(total / 1000)}k`
   })
 
   const openContext = () => {
@@ -106,6 +112,18 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
       <Tooltip value={tooltipValue()} placement={props.placement ?? "top"}>
         <Switch>
           <Match when={variant() === "indicator"}>{circle()}</Match>
+          <Match when={variant() === "inline"}>
+            <Button
+              type="button"
+              variant="ghost"
+              class="h-7 min-w-0 gap-1.5 px-2 text-13-regular text-text-base"
+              onClick={openContext}
+              aria-label={language.t("context.usage.view")}
+            >
+              {circle()}
+              <span class="tabular-nums">{tokenLabel()}</span>
+            </Button>
+          </Match>
           <Match when={true}>
             <Button
               type="button"
