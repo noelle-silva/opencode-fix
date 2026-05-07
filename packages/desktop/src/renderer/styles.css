@@ -10,9 +10,9 @@ html[data-platform="desktop"] {
   --shadow-lg-border-base: var(--shadow-lg);
 }
 
-html[data-platform="desktop"] *,
-html[data-platform="desktop"] *::before,
-html[data-platform="desktop"] *::after {
+html[data-platform="desktop"] *:not([data-component="assistant-render"] *):not([data-component="markdown"] *),
+html[data-platform="desktop"] *:not([data-component="assistant-render"] *):not([data-component="markdown"] *)::before,
+html[data-platform="desktop"] *:not([data-component="assistant-render"] *):not([data-component="markdown"] *)::after {
   border-color: transparent !important;
   outline-color: transparent !important;
 }
