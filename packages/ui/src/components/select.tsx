@@ -14,6 +14,7 @@ export type SelectProps<T> = Omit<ComponentProps<typeof Kobalte<T>>, "value" | "
   valueClass?: ComponentProps<"div">["class"]
   onSelect?: (value: T | undefined) => void
   onHighlight?: (value: T | undefined) => (() => void) | void
+  selectOnPointerDown?: boolean
   class?: ComponentProps<"div">["class"]
   classList?: ComponentProps<"div">["classList"]
   children?: (item: T | undefined) => JSX.Element
@@ -35,6 +36,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
     "valueClass",
     "onSelect",
     "onHighlight",
+    "selectOnPointerDown",
     "onOpenChange",
     "children",
     "triggerStyle",
@@ -109,6 +111,12 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
           }}
           onPointerEnter={() => move(itemProps.item.rawValue)}
           onPointerMove={() => move(itemProps.item.rawValue)}
+          onPointerDown={(event) => {
+            if (!local.selectOnPointerDown) return
+            if (event.button !== 0) return
+            local.onSelect?.(itemProps.item.rawValue)
+            stop()
+          }}
           onFocus={() => move(itemProps.item.rawValue)}
         >
           <Kobalte.ItemLabel data-slot="select-select-item-label">
@@ -147,7 +155,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
       >
         <Kobalte.Value<T> data-slot="select-select-trigger-value" class={local.valueClass}>
           {(state) => {
-            const selected = state.selectedOption() ?? local.current
+            const selected = local.current ?? state.selectedOption()
             if (!selected) return local.placeholder || ""
             if (local.label) return local.label(selected)
             return selected as string

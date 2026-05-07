@@ -1422,6 +1422,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     local.model.variant.set(value === "default" ? undefined : value)
                     restoreFocus()
                   }}
+                  selectOnPointerDown
                   class="capitalize min-w-0 max-w-[160px] text-text-base"
                   valueClass="truncate text-13-regular text-text-base"
                   triggerStyle={control()}
