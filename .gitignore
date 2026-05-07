@@ -23,6 +23,12 @@ target
 .scripts
 .direnv/
 
+# Generated SDK code
+packages/sdk/js/src/gen/
+packages/sdk/js/src/v2/gen/
+packages/sdk/openapi.json
+packages/docs/openapi.json
+
 # Local dev files
 opencode-dev
 UPCOMING_CHANGELOG.md
