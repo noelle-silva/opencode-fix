@@ -235,6 +235,10 @@ const createPlatform = (): Platform => {
       await window.api.setWslConfig({ enabled })
     },
 
+    getDataDirectory: () => window.api.getDataDirectory(),
+
+    moveDataDirectory: (options) => window.api.moveDataDirectory(options),
+
     getDefaultServer: async () => {
       const url = await window.api.getDefaultServerUrl().catch(() => null)
       if (!url) return null
@@ -268,6 +272,10 @@ const createPlatform = (): Platform => {
       return new File([blob], `pasted-image-${Date.now()}.png`, {
         type: "image/png",
       })
+    },
+
+    readImageFile(path: string) {
+      return window.api.readImageFile(path)
     },
   }
 }

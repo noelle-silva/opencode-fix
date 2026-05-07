@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto"
 import { EventEmitter } from "node:events"
-import { existsSync, mkdirSync, rmSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs"
 import * as http from "node:http"
 import { createServer } from "node:net"
 import { homedir, tmpdir } from "node:os"
-import { join } from "node:path"
+import { isAbsolute, join, relative, resolve } from "node:path"
 import { getCACertificates, setDefaultCACertificates } from "node:tls"
 import type { Event } from "electron"
 import { app, BrowserWindow, dialog } from "electron"
@@ -49,8 +49,10 @@ import { parseMarkdown } from "./markdown"
 import { createMenu } from "./menu"
 import {
   getDefaultServerUrl,
+  getDataDir,
   getWslConfig,
   preferAppEnv,
+  setDataDir,
   setDefaultServerUrl,
   setWslConfig,
   spawnLocalServer,
@@ -190,7 +192,7 @@ function setInitStep(step: InitStep) {
 }
 
 async function initialize() {
-  const needsMigration = !sqliteFileExists()
+  const needsMigration = !sqliteFileExists(getDataDir())
   let overlay: BrowserWindow | null = null
 
   const port = await getSidecarPort()
@@ -303,6 +305,9 @@ registerIpcHandlers({
   setDefaultServerUrl: (url) => setDefaultServerUrl(url),
   getWslConfig: () => Promise.resolve(getWslConfig()),
   setWslConfig: (config: WslConfig) => setWslConfig(config),
+  getDataDirectory: () => ({ path: getDataDir() }),
+  setDataDirectory: (config) => setDataDir(config.path),
+  moveDataDirectory: ({ path, copy }) => moveDataDir(path, copy),
   getDisplayBackend: async () => null,
   setDisplayBackend: async () => undefined,
   parseMarkdown: async (markdown) => parseMarkdown(markdown),
@@ -366,12 +371,49 @@ async function getSidecarPort() {
   })
 }
 
-function sqliteFileExists() {
+function sqliteFileExists(dataDir: string | null) {
   if (process.env.OPENCODE_DB === ":memory:") return true
+  if (dataDir) return existsSync(join(dataDir, "opencode.db"))
 
   const xdg = process.env.XDG_DATA_HOME
   const base = xdg && xdg.length > 0 ? xdg : join(homedir(), ".local", "share")
   return existsSync(join(base, "opencode", "opencode.db"))
+}
+
+function defaultDataDir() {
+  const xdg = process.env.XDG_DATA_HOME
+  const base = xdg && xdg.length > 0 ? xdg : join(homedir(), ".local", "share")
+  return join(base, "opencode")
+}
+
+function containsDir(parent: string, child: string) {
+  const rel = relative(parent, child)
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel)
+}
+
+function moveDataDir(target: string | null, copy: boolean) {
+  if (!target) {
+    setDataDir(null)
+    return
+  }
+
+  const source = resolve(getDataDir() ?? defaultDataDir())
+  const destination = resolve(target)
+  if (source === destination) throw new Error("Source and target data directories are the same")
+  if (containsDir(source, destination) || containsDir(destination, source)) {
+    throw new Error("Source and target data directories must not contain each other")
+  }
+
+  mkdirSync(destination, { recursive: true })
+  if (readdirSync(destination).length > 0) throw new Error("Target data directory is not empty")
+
+  if (copy && existsSync(source)) {
+    for (const entry of readdirSync(source)) {
+      cpSync(join(source, entry), join(destination, entry), { recursive: true, force: false, errorOnExist: true })
+    }
+  }
+
+  setDataDir(destination)
 }
 
 function setupAutoUpdater() {

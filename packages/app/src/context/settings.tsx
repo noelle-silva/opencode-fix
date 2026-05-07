@@ -18,6 +18,19 @@ export interface SoundSettings {
   errors: string
 }
 
+export type WallpaperFit = "cover" | "contain"
+
+export interface WallpaperSettingsItem {
+  id: string
+  name: string
+  path: string
+  dataUrl?: string
+  x: number
+  y: number
+  scale: number
+  fit: WallpaperFit
+}
+
 export interface Settings {
   general: {
     autoSave: boolean
@@ -48,6 +61,10 @@ export interface Settings {
   }
   notifications: NotificationSettings
   sounds: SoundSettings
+  wallpapers: {
+    active: string | null
+    items: WallpaperSettingsItem[]
+  }
 }
 
 export const monoDefault = "System Mono"
@@ -144,6 +161,10 @@ const defaultSettings: Settings = {
     errorsEnabled: true,
     errors: "nope-03",
   },
+  wallpapers: {
+    active: null,
+    items: [],
+  },
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -153,6 +174,24 @@ function withFallback<T>(read: () => T | undefined, fallback: T) {
 function sidebarPosition(value: Settings["general"]["sidebarPosition"] | undefined) {
   if (value === "right") return value
   return "left"
+}
+
+function wallpaperFit(value: WallpaperSettingsItem["fit"] | undefined) {
+  if (value === "contain") return value
+  return "cover"
+}
+
+function wallpaperItem(value: WallpaperSettingsItem): WallpaperSettingsItem {
+  return {
+    id: value.id,
+    name: value.name,
+    path: value.path,
+    dataUrl: value.dataUrl,
+    x: Number.isFinite(value.x) ? value.x : 0,
+    y: Number.isFinite(value.y) ? value.y : 0,
+    scale: Number.isFinite(value.scale) ? Math.max(0.2, Math.min(5, value.scale)) : 1,
+    fit: wallpaperFit(value.fit),
+  }
 }
 
 export const { use: useSettings, provider: SettingsProvider } = createSimpleContext({
@@ -334,6 +373,27 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         errors: withFallback(() => store.sounds?.errors, defaultSettings.sounds.errors),
         setErrors(value: string) {
           setStore("sounds", "errors", value)
+        },
+      },
+      wallpapers: {
+        active: withFallback(() => store.wallpapers?.active, defaultSettings.wallpapers.active),
+        items: withFallback(() => store.wallpapers?.items?.map(wallpaperItem), defaultSettings.wallpapers.items),
+        setActive(id: string | null) {
+          setStore("wallpapers", "active", id)
+        },
+        upsert(item: WallpaperSettingsItem) {
+          setStore("wallpapers", "items", (items = []) => {
+            const next = wallpaperItem(item)
+            if (items.some((candidate) => candidate.id === next.id)) {
+              return items.map((candidate) => (candidate.id === next.id ? next : candidate))
+            }
+            return [...items, next]
+          })
+          setStore("wallpapers", "active", item.id)
+        },
+        remove(id: string) {
+          setStore("wallpapers", "items", (items = []) => items.filter((item) => item.id !== id))
+          setStore("wallpapers", "active", (active) => (active === id ? null : active))
         },
       },
     }

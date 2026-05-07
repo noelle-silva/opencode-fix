@@ -12,6 +12,7 @@ import { Vcs } from "@/project/vcs"
 import { Agent } from "@/agent/agent"
 import { Skill } from "@/skill"
 import { Global } from "@opencode-ai/core/global"
+import { Database } from "@/storage/db"
 import { LSP } from "@/lsp/lsp"
 import { Command } from "@/command"
 import { QuestionRoutes } from "./question"
@@ -210,6 +211,9 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, opts?: CorsOptions): H
                   z
                     .object({
                       home: z.string(),
+                      data: z.string(),
+                      database: z.string(),
+                      defaultData: z.string(),
                       state: z.string(),
                       config: z.string(),
                       worktree: z.string(),
@@ -227,6 +231,9 @@ export const InstanceRoutes = (upgrade: UpgradeWebSocket, opts?: CorsOptions): H
       async (c) => {
         return c.json({
           home: Global.Path.home,
+          data: Global.Path.data,
+          database: Database.Path,
+          defaultData: Global.DefaultPath.data,
           state: Global.Path.state,
           config: Global.Path.config,
           worktree: Instance.worktree,

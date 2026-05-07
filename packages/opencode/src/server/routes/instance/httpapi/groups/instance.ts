@@ -13,6 +13,9 @@ import { described } from "./metadata"
 
 const PathInfo = Schema.Struct({
   home: Schema.String,
+  data: Schema.String,
+  database: Schema.String,
+  defaultData: Schema.String,
   state: Schema.String,
   config: Schema.String,
   worktree: Schema.String,

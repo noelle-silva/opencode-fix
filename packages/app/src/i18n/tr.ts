@@ -625,6 +625,7 @@ export const dict = {
   "settings.section.server": "Sunucu",
   "settings.tab.general": "Genel",
   "settings.tab.shortcuts": "Kısayollar",
+  "settings.tab.storage": "Storage",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL entegrasyonu",
   "settings.desktop.wsl.description": "OpenCode sunucusunu Windows'ta WSL içinde çalıştırın.",

@@ -61,6 +61,7 @@ import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { Titlebar } from "@/components/titlebar"
+import { WallpaperLayer } from "@/components/wallpaper-layer"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
@@ -2471,7 +2472,8 @@ export default function Layout(props: ParentProps) {
                 }}
               >
                 <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
-                  {props.children}
+                  <WallpaperLayer />
+                  <div class="relative z-10 size-full">{props.children}</div>
                 </Show>
               </main>
             </div>

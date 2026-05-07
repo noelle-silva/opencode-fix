@@ -29,4 +29,14 @@ describe("i18n parity", () => {
       }
     }
   })
+
+  test("all locales include storage settings keys", () => {
+    const storageKeys = ["settings.tab.storage"] as const
+
+    for (const locale of [en, ...locales]) {
+      for (const key of storageKeys) {
+        expect(locale[key]).toBeDefined()
+      }
+    }
+  })
 })

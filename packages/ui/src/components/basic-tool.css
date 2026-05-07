@@ -6,9 +6,28 @@
   align-self: stretch;
   gap: 0px;
   justify-content: flex-start;
+  min-height: 32px;
+  width: calc(100% + 16px);
+  margin-inline: -8px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   &[data-clickable="true"] {
     cursor: pointer;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover,
+    &:focus-within {
+      background-color: var(--surface-raised-base-hover);
+      border-color: var(--border-weak-base);
+      box-shadow: var(--shadow-xs-border-hover);
+    }
   }
 
   [data-slot="basic-tool-tool-trigger-content"] {

@@ -19,6 +19,15 @@ export type WindowConfig = {
   updaterEnabled: boolean
 }
 
+export type DataDirectoryConfig = {
+  path: string | null
+}
+
+export type DataDirectoryMoveOptions = {
+  path: string | null
+  copy: boolean
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   installCli: () => Promise<string>
@@ -29,6 +38,9 @@ export type ElectronAPI = {
   setDefaultServerUrl: (url: string | null) => Promise<void>
   getWslConfig: () => Promise<WslConfig>
   setWslConfig: (config: WslConfig) => Promise<void>
+  getDataDirectory: () => Promise<DataDirectoryConfig>
+  setDataDirectory: (config: DataDirectoryConfig) => Promise<void>
+  moveDataDirectory: (options: DataDirectoryMoveOptions) => Promise<void>
   getDisplayBackend: () => Promise<LinuxDisplayBackend | null>
   setDisplayBackend: (backend: LinuxDisplayBackend | null) => Promise<void>
   parseMarkdownCommand: (markdown: string) => Promise<string>
@@ -63,6 +75,7 @@ export type ElectronAPI = {
   openLink: (url: string) => void
   openPath: (path: string, app?: string) => Promise<void>
   readClipboardImage: () => Promise<{ buffer: ArrayBuffer; width: number; height: number } | null>
+  readImageFile: (path: string) => Promise<string | null>
   showNotification: (title: string, body?: string) => void
   getWindowFocused: () => Promise<boolean>
   setWindowFocus: () => Promise<void>

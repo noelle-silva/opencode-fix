@@ -224,6 +224,18 @@
   [data-slot="session-turn-diff-view"]::-webkit-scrollbar {
     display: none;
   }
+
+  @media (hover: hover) and (pointer: fine) {
+    [data-slot="session-turn-diff-trigger"] {
+      cursor: pointer;
+    }
+
+    [data-slot="accordion-trigger"]:hover:not([data-disabled]),
+    [data-slot="accordion-trigger"]:focus-visible:not([data-disabled]) {
+      border-color: var(--border-strong-base);
+      box-shadow: var(--shadow-xs-border-hover);
+    }
+  }
 }
 
 [data-slot="session-turn-list"] {

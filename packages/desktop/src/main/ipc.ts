@@ -1,8 +1,12 @@
 import { execFile } from "node:child_process"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 import { BrowserWindow, Notification, app, clipboard, dialog, ipcMain, shell } from "electron"
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 
 import type {
+  DataDirectoryConfig,
+  DataDirectoryMoveOptions,
   InitStep,
   ServerReadyData,
   SqliteMigrationProgress,
@@ -18,6 +22,17 @@ const pickerFilters = (ext?: string[]) => {
   return [{ name: "Files", extensions: ext }]
 }
 
+const imageMimeTypes: Record<string, string> = {
+  ".avif": "image/avif",
+  ".bmp": "image/bmp",
+  ".gif": "image/gif",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+}
+
 type Deps = {
   killSidecar: () => Promise<void> | void
   awaitInitialization: (sendStep: (step: InitStep) => void) => Promise<ServerReadyData>
@@ -27,6 +42,9 @@ type Deps = {
   setDefaultServerUrl: (url: string | null) => Promise<void> | void
   getWslConfig: () => Promise<WslConfig>
   setWslConfig: (config: WslConfig) => Promise<void> | void
+  getDataDirectory: () => Promise<DataDirectoryConfig> | DataDirectoryConfig
+  setDataDirectory: (config: DataDirectoryConfig) => Promise<void> | void
+  moveDataDirectory: (options: DataDirectoryMoveOptions) => Promise<void> | void
   getDisplayBackend: () => Promise<string | null>
   setDisplayBackend: (backend: string | null) => Promise<void> | void
   parseMarkdown: (markdown: string) => Promise<string> | string
@@ -54,6 +72,13 @@ export function registerIpcHandlers(deps: Deps) {
   )
   ipcMain.handle("get-wsl-config", () => deps.getWslConfig())
   ipcMain.handle("set-wsl-config", (_event: IpcMainInvokeEvent, config: WslConfig) => deps.setWslConfig(config))
+  ipcMain.handle("get-data-directory", () => deps.getDataDirectory())
+  ipcMain.handle("set-data-directory", (_event: IpcMainInvokeEvent, config: DataDirectoryConfig) =>
+    deps.setDataDirectory(config),
+  )
+  ipcMain.handle("move-data-directory", (_event: IpcMainInvokeEvent, options: DataDirectoryMoveOptions) =>
+    deps.moveDataDirectory(options),
+  )
   ipcMain.handle("get-display-backend", () => deps.getDisplayBackend())
   ipcMain.handle("set-display-backend", (_event: IpcMainInvokeEvent, backend: string | null) =>
     deps.setDisplayBackend(backend),
@@ -158,6 +183,12 @@ export function registerIpcHandlers(deps: Deps) {
     const buffer = image.toPNG().buffer
     const size = image.getSize()
     return { buffer, width: size.width, height: size.height }
+  })
+
+  ipcMain.handle("read-image-file", async (_event: IpcMainInvokeEvent, filePath: string) => {
+    const mime = imageMimeTypes[path.extname(filePath).toLowerCase()]
+    if (!mime) return null
+    return `data:${mime};base64,${Buffer.from(await readFile(filePath)).toString("base64")}`
   })
 
   ipcMain.on("show-notification", (_event: IpcMainEvent, title: string, body?: string) => {

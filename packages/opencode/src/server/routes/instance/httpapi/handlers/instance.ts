@@ -3,6 +3,7 @@ import { Command } from "@/command"
 import * as InstanceState from "@/effect/instance-state"
 import { Format } from "@/format"
 import { Global } from "@opencode-ai/core/global"
+import { Database } from "@/storage/db"
 import { LSP } from "@/lsp/lsp"
 import { Vcs } from "@/project/vcs"
 import { Skill } from "@/skill"
@@ -29,6 +30,9 @@ export const instanceHandlers = HttpApiBuilder.group(InstanceHttpApi, "instance"
       const ctx = yield* InstanceState.context
       return {
         home: Global.Path.home,
+        data: Global.Path.data,
+        database: Database.Path,
+        defaultData: Global.DefaultPath.data,
         state: Global.Path.state,
         config: Global.Path.config,
         worktree: ctx.worktree,

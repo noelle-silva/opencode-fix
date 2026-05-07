@@ -549,6 +549,7 @@ export const dict = {
   "settings.section.server": "الخادم",
   "settings.tab.general": "عام",
   "settings.tab.shortcuts": "اختصارات",
+  "settings.tab.storage": "Storage",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "تكامل WSL",
   "settings.desktop.wsl.description": "تشغيل خادم OpenCode داخل WSL على Windows.",

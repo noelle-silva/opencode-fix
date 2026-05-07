@@ -8,6 +8,8 @@ type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
 type OpenFilePickerOptions = { title?: string; multiple?: boolean; accept?: string[]; extensions?: string[] }
 type SaveFilePickerOptions = { title?: string; defaultPath?: string }
 type UpdateInfo = { updateAvailable: boolean; version?: string }
+type DataDirectoryConfig = { path: string | null }
+type DataDirectoryMoveOptions = { path: string | null; copy: boolean }
 
 export type Platform = {
   /** Platform discriminator */
@@ -70,6 +72,12 @@ export type Platform = {
   /** Set the configured WSL integration (desktop only) */
   setWslEnabled?(config: boolean): Promise<void> | void
 
+  /** Get the configured data directory override (desktop only) */
+  getDataDirectory?(): Promise<DataDirectoryConfig>
+
+  /** Prepare and save a data directory override (desktop only) */
+  moveDataDirectory?(options: DataDirectoryMoveOptions): Promise<void>
+
   /** Get the preferred display backend (desktop only) */
   getDisplayBackend?(): Promise<DisplayBackend | null> | DisplayBackend | null
 
@@ -87,6 +95,9 @@ export type Platform = {
 
   /** Read image from clipboard (desktop only) */
   readClipboardImage?(): Promise<File | null>
+
+  /** Read a local image as a data URL (desktop only) */
+  readImageFile?(path: string): Promise<string | null>
 }
 
 export type DisplayBackend = "auto" | "wayland"

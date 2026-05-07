@@ -550,6 +550,7 @@ export const dict = {
   "settings.section.server": "서버",
   "settings.tab.general": "일반",
   "settings.tab.shortcuts": "단축키",
+  "settings.tab.storage": "Storage",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL 통합",
   "settings.desktop.wsl.description": "Windows의 WSL 내부에서 OpenCode 서버를 실행합니다.",

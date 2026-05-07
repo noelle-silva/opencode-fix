@@ -17,6 +17,7 @@ type StartCommand = {
   port: number
   password: string
   userDataPath: string
+  dataDir: string | null
   needsMigration: boolean
 }
 
@@ -53,7 +54,7 @@ parentPort.on("message", (event) => {
 
 async function start(command: StartCommand) {
   try {
-    prepareSidecarEnv(command.password, command.userDataPath)
+    prepareSidecarEnv(command.password, command.userDataPath, command.dataDir)
     ensureLoopbackNoProxy()
     useSystemCertificates()
     useEnvProxy()
@@ -99,10 +100,11 @@ async function stop() {
   }
 }
 
-function prepareSidecarEnv(password: string, userDataPath: string) {
+function prepareSidecarEnv(password: string, userDataPath: string, dataDir: string | null) {
   Object.assign(process.env, {
     OPENCODE_SERVER_USERNAME: "opencode",
     OPENCODE_SERVER_PASSWORD: password,
+    OPENCODE_DATA_DIR: dataDir ?? undefined,
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
   })
 }
@@ -155,6 +157,7 @@ function parseCommand(value: unknown): SidecarCommand | undefined {
   if (typeof command.port !== "number") return
   if (typeof command.password !== "string") return
   if (typeof command.userDataPath !== "string") return
+  if (command.dataDir !== null && typeof command.dataDir !== "string") return
   if (typeof command.needsMigration !== "boolean") return
   return {
     type: "start",
@@ -162,6 +165,7 @@ function parseCommand(value: unknown): SidecarCommand | undefined {
     port: command.port,
     password: command.password,
     userDataPath: command.userDataPath,
+    dataDir: command.dataDir ?? null,
     needsMigration: command.needsMigration,
   }
 }
