@@ -1,0 +1,295 @@
+[data-component="assistant-render"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.75;
+
+  > *:first-child {
+    margin-top: 0;
+  }
+
+  > *:last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0 0 18px;
+    color: var(--text-strong);
+    font-size: 14px;
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-large);
+  }
+
+  p {
+    margin: 0 0 12px;
+  }
+
+  a {
+    color: var(--text-interactive-base);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  ul,
+  ol {
+    margin: 8px 0 12px;
+    padding-left: 32px;
+  }
+
+  li {
+    margin-bottom: 8px;
+  }
+
+  li::marker {
+    color: var(--text-weak);
+  }
+
+  blockquote {
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-left: 3px solid var(--border-weak-base);
+    border-radius: 8px;
+    background: var(--surface-base);
+    color: var(--text-base);
+  }
+
+  :not(pre) > code {
+    font-family: var(--font-family-mono);
+    color: var(--syntax-string);
+    font-weight: var(--font-weight-medium);
+  }
+
+  pre {
+    margin: 12px 0 28px;
+    overflow: auto;
+    border-radius: 8px;
+    background: var(--markdown-code-block);
+    color: var(--text-invert-strong);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  pre code {
+    display: block;
+    padding: 12px;
+    font-family: var(--font-family-mono);
+    font-size: 13px;
+    line-height: var(--line-height-large);
+    white-space: pre;
+  }
+
+  pre.fw-code-block {
+    position: relative;
+    padding-top: 34px;
+  }
+
+  pre.fw-code-block .fw-code-copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--border-weak-base) 55%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface-float-base) 70%, transparent);
+    color: var(--icon-base);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+  }
+
+  pre.fw-code-block:hover .fw-code-copy,
+  pre.fw-code-block:focus-within .fw-code-copy {
+    opacity: 1;
+  }
+
+  pre.fw-code-block .fw-code-copy[data-state="ok"] {
+    color: var(--syntax-success);
+  }
+
+  pre.fw-code-block .fw-code-copy[data-state="fail"] {
+    color: var(--syntax-critical);
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    margin: 24px 0;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: var(--font-size-base);
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-weaker-base);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--text-strong);
+    font-weight: var(--font-weight-medium);
+    border-bottom-color: var(--border-weak-base);
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    margin: 1.5rem 0;
+    display: block;
+    border-radius: 6px;
+  }
+
+  img.fw-sticker {
+    max-width: 160px;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    display: inline-block;
+    margin: 0 2px;
+    vertical-align: middle;
+    border-radius: 12px;
+  }
+
+  .fw-sticker-miss {
+    color: var(--text-weak);
+  }
+
+  .math-inline.fw-math-host {
+    position: relative;
+    display: inline-block;
+  }
+
+  .math-block.fw-math-host {
+    position: relative;
+    display: block;
+    margin: 10px 0;
+    overflow-x: auto;
+  }
+
+  .fw-math-copy {
+    position: absolute;
+    width: 34px;
+    height: 22px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-weak);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+
+  .math-inline.fw-math-host > .fw-math-copy {
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .math-block.fw-math-host > .fw-math-copy {
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .fw-math-host:hover > .fw-math-copy,
+  .fw-math-host:focus-within > .fw-math-copy {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mermaid-block {
+    margin: 10px 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  .mermaid-block[data-mermaid="1"] {
+    cursor: zoom-in;
+  }
+
+  .mermaid-block svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .mermaid-error {
+    margin: 10px 0;
+    overflow-x: auto;
+  }
+
+  .mermaid-error-box {
+    position: relative;
+    padding: 10px 48px 10px 12px;
+    border: 1px solid var(--border-weak-base);
+    border-radius: 12px;
+    background: var(--surface-base);
+  }
+
+  .mermaid-error-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-weak-base);
+    border-radius: 999px;
+    background: var(--surface-float-base);
+    color: var(--icon-base);
+    cursor: pointer;
+  }
+
+  .mermaid-error-title {
+    color: var(--text-strong);
+    font-size: 12px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .mermaid-error-msg {
+    margin-top: 6px;
+    color: var(--text-base);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .mermaid-error-src {
+    display: none;
+  }
+}

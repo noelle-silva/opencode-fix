@@ -44,6 +44,7 @@ import { ToolErrorCard } from "./tool-error-card"
 import { Checkbox } from "./checkbox"
 import { DiffChanges } from "./diff-changes"
 import { Markdown } from "./markdown"
+import { AssistantMarkdown } from "./assistant-render/assistant-markdown"
 import { ImagePreview } from "./image-preview"
 import { getDirectory as _getDirectory, getFilename } from "@opencode-ai/core/util/path"
 import { checksum } from "@opencode-ai/core/util/encode"
@@ -241,6 +242,19 @@ function PacedMarkdown(props: { text: string; cacheKey: string; streaming: boole
   return (
     <Show when={value()}>
       <Markdown text={value()} cacheKey={props.cacheKey} streaming={props.streaming} />
+    </Show>
+  )
+}
+
+function PacedAssistantMarkdown(props: { text: string; cacheKey: string; streaming: boolean }) {
+  const value = createPacedValue(
+    () => props.text,
+    () => props.streaming,
+  )
+
+  return (
+    <Show when={value()}>
+      <AssistantMarkdown text={value()} cacheKey={props.cacheKey} streaming={props.streaming} />
     </Show>
   )
 }
@@ -1469,10 +1483,19 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
 
   return (
     <Show when={text()}>
-      <div data-component="text-part">
-        <div data-slot="text-part-body">
-          <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
-            <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+        <div data-component="text-part">
+          <div data-slot="text-part-body">
+          <Show
+            when={props.message.role === "assistant"}
+            fallback={
+              <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
+                <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+              </Show>
+            }
+          >
+            <Show when={streaming()} fallback={<AssistantMarkdown text={text()} cacheKey={part().id} streaming={false} />}>
+              <PacedAssistantMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+            </Show>
           </Show>
         </div>
         <Show when={showCopy()}>

@@ -25,6 +25,8 @@ import { webviewZoom } from "./webview-zoom"
 import "./styles.css"
 import { useTheme } from "@opencode-ai/ui/theme"
 
+;(window as Window & { __OPENCODE_ASSISTANT_RENDERER__?: "fast-window" }).__OPENCODE_ASSISTANT_RENDERER__ = "fast-window"
+
 const root = document.getElementById("root")
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   throw new Error(t("error.dev.rootNotFound"))
