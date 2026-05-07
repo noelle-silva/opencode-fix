@@ -14,6 +14,11 @@ export interface Interface {
     onInterrupt: Effect.Effect<MessageV2.WithParts>,
     work: Effect.Effect<MessageV2.WithParts>,
   ) => Effect.Effect<MessageV2.WithParts>
+  readonly startRun: (
+    sessionID: SessionID,
+    onInterrupt: Effect.Effect<MessageV2.WithParts>,
+    work: Effect.Effect<MessageV2.WithParts>,
+  ) => Effect.Effect<MessageV2.WithParts>
   readonly startShell: (
     sessionID: SessionID,
     onInterrupt: Effect.Effect<MessageV2.WithParts>,
@@ -92,6 +97,15 @@ export const layer = Layer.effect(
       return yield* (yield* runner(sessionID, onInterrupt)).ensureRunning(work)
     })
 
+    const startRun = Effect.fn("SessionRunState.startRun")(function* (
+      sessionID: SessionID,
+      onInterrupt: Effect.Effect<MessageV2.WithParts>,
+      work: Effect.Effect<MessageV2.WithParts>,
+    ) {
+      yield* assertNotBusy(sessionID)
+      return yield* (yield* runner(sessionID, onInterrupt)).ensureRunning(work)
+    })
+
     const startShell = Effect.fn("SessionRunState.startShell")(function* (
       sessionID: SessionID,
       onInterrupt: Effect.Effect<MessageV2.WithParts>,
@@ -101,7 +115,7 @@ export const layer = Layer.effect(
       return yield* (yield* runner(sessionID, onInterrupt)).startShell(work, ready)
     })
 
-    return Service.of({ assertNotBusy, cancel, ensureRunning, startShell })
+    return Service.of({ assertNotBusy, cancel, ensureRunning, startRun, startShell })
   }),
 )
 

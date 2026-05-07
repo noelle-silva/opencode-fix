@@ -143,6 +143,7 @@ export type SessionAction = (input: { sessionID: string; messageID: string }) =>
 
 export type UserActions = {
   fork?: SessionAction
+  regenerate?: SessionAction
   revert?: SessionAction
 }
 
@@ -1075,6 +1076,20 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
       .finally(() => setState("busy", false))
   }
 
+  const regenerate = () => {
+    const act = props.actions?.regenerate
+    if (!act || busy()) return
+    setState("busy", true)
+    void Promise.resolve()
+      .then(() =>
+        act({
+          sessionID: props.message.sessionID,
+          messageID: props.message.id,
+        }),
+      )
+      .finally(() => setState("busy", false))
+  }
+
   return (
     <div data-component="user-message">
       <Show when={attachments().length > 0}>
@@ -1151,6 +1166,22 @@ export function UserMessageDisplay(props: { message: UserMessage; parts: PartTyp
                     revert()
                   }}
                   aria-label={i18n.t("ui.message.revertMessage")}
+                />
+              </Tooltip>
+            </Show>
+            <Show when={props.actions?.regenerate}>
+              <Tooltip value={i18n.t("ui.message.regenerateResponse")} placement="top" gutter={4}>
+                <IconButton
+                  icon="arrow-undo-down"
+                  size="normal"
+                  variant="ghost"
+                  disabled={!!busy()}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    regenerate()
+                  }}
+                  aria-label={i18n.t("ui.message.regenerateResponse")}
                 />
               </Tooltip>
             </Show>

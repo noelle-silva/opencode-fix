@@ -32,6 +32,7 @@ import {
   MessagesQuery,
   PermissionResponsePayload,
   PromptPayload,
+  RegeneratePayload,
   RevertPayload,
   ShellPayload,
   SummarizePayload,
@@ -286,6 +287,25 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       return HttpApiSchema.NoContent.make()
     })
 
+    const regenerate = Effect.fn("SessionHttpApi.regenerate")(function* (ctx: {
+      params: { sessionID: SessionID }
+      payload: typeof RegeneratePayload.Type
+    }) {
+      yield* promptSvc.regenerate({ sessionID: ctx.params.sessionID, ...ctx.payload }).pipe(
+        Effect.catchCause((cause) =>
+          Effect.gen(function* () {
+            yield* Effect.logError("regenerate failed", { sessionID: ctx.params.sessionID, cause })
+            yield* bus.publish(Session.Event.Error, {
+              sessionID: ctx.params.sessionID,
+              error: new NamedError.Unknown({ message: Cause.pretty(cause) }).toObject(),
+            })
+          }),
+        ),
+        Effect.forkIn(scope, { startImmediately: true }),
+      )
+      return HttpApiSchema.NoContent.make()
+    })
+
     const command = Effect.fn("SessionHttpApi.command")(function* (ctx: {
       params: { sessionID: SessionID }
       payload: typeof CommandPayload.Type
@@ -371,6 +391,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       .handle("summarize", summarize)
       .handle("prompt", prompt)
       .handle("promptAsync", promptAsync)
+      .handle("regenerate", regenerate)
       .handle("command", command)
       .handle("shell", shell)
       .handle("revert", revert)

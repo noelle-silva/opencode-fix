@@ -78,9 +78,14 @@ const STRUCTURED_OUTPUT_SYSTEM_PROMPT = `IMPORTANT: The user has requested struc
 const log = Log.create({ service: "session.prompt" })
 const elog = EffectLogger.create({ service: "session.prompt" })
 
+function sessionPath(worktree: string, cwd: string) {
+  return path.relative(path.resolve(worktree), cwd).replaceAll("\\", "/")
+}
+
 export interface Interface {
   readonly cancel: (sessionID: SessionID) => Effect.Effect<void>
   readonly prompt: (input: PromptInput) => Effect.Effect<MessageV2.WithParts>
+  readonly regenerate: (input: RegenerateInput) => Effect.Effect<MessageV2.WithParts>
   readonly loop: (input: LoopInput) => Effect.Effect<MessageV2.WithParts>
   readonly shell: (input: ShellInput) => Effect.Effect<MessageV2.WithParts>
   readonly command: (input: CommandInput) => Effect.Effect<MessageV2.WithParts>
@@ -130,6 +135,56 @@ export const layer = Layer.effect(
     const cancel = Effect.fn("SessionPrompt.cancel")(function* (sessionID: SessionID) {
       yield* elog.info("cancel", { sessionID })
       yield* state.cancel(sessionID)
+    })
+
+    const historyForRegenerate = Effect.fn("SessionPrompt.regenerateHistory")(function* (input: {
+      sessionID: SessionID
+      messageID: MessageID
+    }) {
+      const messages = yield* sessions.messages({ sessionID: input.sessionID })
+      const index = messages.findIndex((msg) => msg.info.id === input.messageID)
+      if (index < 0) throw new Error(`Message not found: ${input.messageID}`)
+
+      const target = messages[index]
+      if (target.info.role !== "user") throw new Error(`Cannot regenerate non-user message: ${input.messageID}`)
+      return MessageV2.filterCompacted(messages.slice(0, index + 1))
+    })
+
+    const removeAssistantReplies = Effect.fn("SessionPrompt.removeAssistantReplies")(function* (input: {
+      sessionID: SessionID
+      messageID: MessageID
+    }) {
+      const replies = (yield* sessions.messages({ sessionID: input.sessionID })).filter(
+        (msg) => msg.info.role === "assistant" && msg.info.parentID === input.messageID,
+      )
+
+      yield* Effect.forEach(
+        replies,
+        (reply) => sessions.removeMessage({ sessionID: input.sessionID, messageID: reply.info.id }),
+        { discard: true },
+      )
+    })
+
+    const createAssistantMessage = (input: {
+      session: Session.Info
+      user: MessageV2.User
+      agent: Agent.Info
+      model: Provider.Model
+      path: MessageV2.Assistant["path"]
+    }): MessageV2.Assistant => ({
+      id: MessageID.ascending(),
+      parentID: input.user.id,
+      role: "assistant",
+      mode: input.agent.name,
+      agent: input.agent.name,
+      variant: input.user.model.variant,
+      path: input.path,
+      cost: 0,
+      tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+      modelID: input.model.id,
+      providerID: input.model.providerID,
+      time: { created: Date.now() },
+      sessionID: input.session.id,
     })
 
     const resolvePromptParts = Effect.fn("SessionPrompt.resolvePromptParts")(function* (template: string) {
@@ -1389,6 +1444,116 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       },
     )
 
+    const completeRegenerate = Effect.fn("SessionPrompt.completeRegenerate")(function* (input: {
+      session: Session.Info
+      history: MessageV2.WithParts[]
+      user: MessageV2.User
+    }) {
+      const agent = yield* agents.get(input.user.agent)
+      if (!agent) {
+        const available = (yield* agents.list()).filter((a) => !a.hidden).map((a) => a.name)
+        const hint = available.length ? ` Available agents: ${available.join(", ")}` : ""
+        const error = new NamedError.Unknown({ message: `Agent not found: "${input.user.agent}".${hint}` })
+        yield* bus.publish(Session.Event.Error, { sessionID: input.session.id, error: error.toObject() })
+        throw error
+      }
+
+      const model = yield* getModel(input.user.model.providerID, input.user.model.modelID, input.session.id)
+      const ctx = yield* InstanceState.context
+      const history = yield* insertReminders({ messages: input.history, agent, session: input.session })
+      const msg = createAssistantMessage({
+        session: input.session,
+        user: input.user,
+        agent,
+        model,
+        path: { cwd: ctx.directory, root: sessionPath(ctx.worktree, ctx.directory) },
+      })
+
+      yield* sessions.updateMessage(msg)
+      const handle = yield* processor.create({ assistantMessage: msg, sessionID: input.session.id, model })
+      const tools = yield* resolveTools({
+        agent,
+        session: input.session,
+        model,
+        tools: input.user.tools,
+        processor: handle,
+        bypassAgentCheck: input.history.at(-1)?.parts.some((part) => part.type === "agent") ?? false,
+        messages: history,
+      })
+
+      if (input.user.format?.type === "json_schema") {
+        let structured: unknown
+        tools["StructuredOutput"] = createStructuredOutputTool({
+          schema: input.user.format.schema,
+          onSuccess(output) {
+            structured = output
+          },
+        })
+
+        const [skills, env, instructions, modelMsgs] = yield* Effect.all([
+          sys.skills(agent),
+          sys.environment(model),
+          instruction.system().pipe(Effect.orDie),
+          MessageV2.toModelMessagesEffect(history, model),
+        ])
+        const system = [...env, ...instructions, ...(skills ? [skills] : []), STRUCTURED_OUTPUT_SYSTEM_PROMPT]
+        yield* handle.process({
+          user: input.user,
+          agent,
+          permission: input.session.permission,
+          sessionID: input.session.id,
+          parentSessionID: input.session.parentID,
+          system,
+          messages: modelMsgs,
+          tools,
+          model,
+          toolChoice: "required",
+        })
+        if (structured !== undefined) {
+          handle.message.structured = structured
+          handle.message.finish = handle.message.finish ?? "stop"
+          yield* sessions.updateMessage(handle.message)
+        }
+        return yield* lastAssistant(input.session.id)
+      }
+
+      const [skills, env, instructions, modelMsgs] = yield* Effect.all([
+        sys.skills(agent),
+        sys.environment(model),
+        instruction.system().pipe(Effect.orDie),
+        MessageV2.toModelMessagesEffect(history, model),
+      ])
+      yield* handle.process({
+        user: input.user,
+        agent,
+        permission: input.session.permission,
+        sessionID: input.session.id,
+        parentSessionID: input.session.parentID,
+        system: [...env, ...instructions, ...(skills ? [skills] : [])],
+        messages: modelMsgs,
+        tools,
+        model,
+      })
+      return { info: handle.message, parts: MessageV2.parts(handle.message.id) }
+    })
+
+    const regenerate: (input: RegenerateInput) => Effect.Effect<MessageV2.WithParts> = Effect.fn(
+      "SessionPrompt.regenerate",
+    )(function* (input: RegenerateInput) {
+      const session = yield* sessions.get(input.sessionID).pipe(Effect.orDie)
+      const history = yield* historyForRegenerate(input)
+      const user = history.at(-1)?.info
+      if (!user || user.role !== "user") throw new Error(`Cannot regenerate message: ${input.messageID}`)
+
+      yield* removeAssistantReplies(input)
+      yield* sessions.touch(input.sessionID)
+      return yield* state.startRun(
+        input.sessionID,
+        lastAssistant(input.sessionID),
+        completeRegenerate({ session, history, user }),
+      )
+    })
+
     const lastAssistant = Effect.fnUntraced(function* (sessionID: SessionID) {
       const match = yield* sessions.findMessage(sessionID, (m) => m.info.role !== "user")
       if (Option.isSome(match)) return match.value
@@ -1760,6 +1925,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
     return Service.of({
       cancel,
       prompt,
+      regenerate,
       loop,
       shell,
       command,
@@ -1827,6 +1993,12 @@ export const PromptInput = Schema.Struct({
   ),
 }).pipe(withStatics((s) => ({ zod: zod(s) })))
 export type PromptInput = Schema.Schema.Type<typeof PromptInput>
+
+export const RegenerateInput = Schema.Struct({
+  sessionID: SessionID,
+  messageID: MessageID,
+}).pipe(withStatics((s) => ({ zod: zod(s) })))
+export type RegenerateInput = Schema.Schema.Type<typeof RegenerateInput>
 
 export class LoopInput extends Schema.Class<LoopInput>("SessionPrompt.LoopInput")({
   sessionID: SessionID,

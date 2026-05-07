@@ -538,6 +538,14 @@ describe("session HttpApi", () => {
         ).toMatchObject({ id: session.id })
 
         expect(
+          yield* request(pathFor(SessionPaths.regenerate, { sessionID: session.id }), {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ messageID: MessageID.ascending() }),
+          }).pipe(Effect.map((response) => response.status)),
+        ).toBe(204)
+
+        expect(
           yield* requestJson<boolean>(
             pathFor(SessionPaths.permissions, {
               sessionID: session.id,

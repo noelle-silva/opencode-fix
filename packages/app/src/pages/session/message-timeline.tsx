@@ -47,6 +47,7 @@ const emptyMessages: MessageType[] = []
 const idle = { type: "idle" as const }
 type UserActions = {
   fork?: (input: { sessionID: string; messageID: string }) => Promise<void> | void
+  regenerate?: (input: { sessionID: string; messageID: string }) => Promise<void> | void
   revert?: (input: { sessionID: string; messageID: string }) => Promise<void> | void
 }
 

@@ -1644,6 +1644,16 @@ export default function Page() {
     },
   }))
 
+  const regenerateMutation = useMutation(() => ({
+    mutationFn: async (input: { sessionID: string; messageID: string }) => {
+      await sdk.client.session.regenerate(input)
+    },
+    onSuccess: () => {
+      resumeScroll()
+    },
+    onError: fail,
+  }))
+
   const restoreMutation = useMutation(() => ({
     mutationFn: async (id: string) => {
       const sessionID = params.id
@@ -1693,6 +1703,12 @@ export default function Page() {
     return revertMutation.mutateAsync(input)
   }
 
+  const regenerate = (input: { sessionID: string; messageID: string }) => {
+    if (reverting() || regenerateMutation.isPending) return
+    if (busy(input.sessionID)) return
+    return regenerateMutation.mutateAsync(input)
+  }
+
   const restore = (id: string) => {
     if (!params.id || reverting()) return
     return restoreMutation.mutateAsync(id)
@@ -1706,7 +1722,7 @@ export default function Page() {
       .map((item) => ({ id: item.id, text: line(item.id) }))
   })
 
-  const actions = { revert }
+  const actions = { regenerate, revert }
 
   createEffect(() => {
     const sessionID = params.id

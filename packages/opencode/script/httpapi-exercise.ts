@@ -1245,6 +1245,29 @@ const scenarios: Scenario[] = [
       }),
     ),
   http
+    .post("/session/{sessionID}/regenerate", "session.regenerate")
+    .preserveDatabase()
+    .withLlm()
+    .seeded((ctx) =>
+      Effect.gen(function* () {
+        const session = yield* ctx.session({ title: "Regenerate session" })
+        const message = yield* ctx.message(session.id, { text: "regenerate me" })
+        yield* ctx.llmText("regenerated assistant")
+        yield* ctx.llmText("regenerated assistant")
+        return { session, message }
+      }),
+    )
+    .at((ctx) => ({
+      path: route("/session/{sessionID}/regenerate", { sessionID: ctx.state.session.id }),
+      headers: ctx.headers(),
+      body: { messageID: ctx.state.message.info.id },
+    }))
+    .status(204, (ctx) =>
+      Effect.gen(function* () {
+        yield* ctx.llmWait(1)
+      }),
+    ),
+  http
     .post("/session/{sessionID}/command", "session.command")
     .preserveDatabase()
     .withLlm()

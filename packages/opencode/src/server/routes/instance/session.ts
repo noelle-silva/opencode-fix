@@ -947,6 +947,46 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .post(
+      "/:sessionID/regenerate",
+      describeRoute({
+        summary: "Regenerate response",
+        description: "Regenerate the assistant response for a specific user message without removing later turns.",
+        operationId: "session.regenerate",
+        responses: {
+          204: {
+            description: "Regeneration accepted",
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: SessionID.zod,
+        }),
+      ),
+      validator("json", zodObject(SessionPrompt.RegenerateInput).omit({ sessionID: true })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        void runRequest(
+          "SessionRoutes.regenerate",
+          c,
+          SessionPrompt.Service.use((svc) =>
+            svc.regenerate({ ...body, sessionID } as unknown as SessionPrompt.RegenerateInput),
+          ),
+        ).catch((err) => {
+          log.error("regenerate failed", { sessionID, error: err })
+          void Bus.publish(Session.Event.Error, {
+            sessionID,
+            error: new NamedError.Unknown({ message: err instanceof Error ? err.message : String(err) }).toObject(),
+          })
+        })
+
+        return c.body(null, 204)
+      },
+    )
+    .post(
       "/:sessionID/command",
       describeRoute({
         summary: "Send command",
