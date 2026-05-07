@@ -269,13 +269,14 @@ export default function Layout(props: ParentProps) {
   })
 
   createEffect(() => {
-    const p = hoverProjectData()
-    if (p) {
+    const hovered = hoverProjectData()
+    const project = currentProject()
+    if (hovered && project) {
       if (peekt !== undefined) {
         clearTimeout(peekt)
         peekt = undefined
       }
-      setState("peek", p.worktree)
+      setState("peek", project.worktree)
       setState("peeked", true)
       return
     }
@@ -1881,9 +1882,6 @@ export default function Layout(props: ParentProps) {
   }
 
   const sidebarProject = createMemo(() => {
-    if (layout.sidebar.opened()) return currentProject()
-    const hovered = hoverProjectData()
-    if (hovered) return hovered
     return currentProject()
   })
 
