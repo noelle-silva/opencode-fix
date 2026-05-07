@@ -282,30 +282,76 @@
   color: var(--text-base);
   line-height: var(--line-height-normal);
 
-  [data-component="markdown"] {
-    margin-top: 16px;
-    font-style: normal;
-    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
-    color: var(--text-weak);
+  > [data-component="collapsible"].reasoning-collapsible {
+    gap: 4px;
+  }
 
-    strong,
-    b {
-      color: var(--text-weak);
+  [data-slot="collapsible-trigger"] {
+    height: 24px;
+    cursor: pointer;
+
+    [data-slot="collapsible-arrow"] {
+      opacity: 1;
+    }
+  }
+
+  [data-slot="reasoning-part-trigger"] {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  [data-slot="reasoning-part-title"] {
+    min-width: 0;
+    color: var(--text-weaker);
+    font-family: var(--font-family-sans);
+    font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-large);
+  }
+
+  [data-slot="reasoning-part-body"] {
+    max-height: 148px;
+    margin-left: 12px;
+    padding: 6px 10px 8px 12px;
+    border-left: 1px solid var(--border-weak-base);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
     }
 
-    p:has(strong) {
-      margin-top: 24px;
-      margin-bottom: 0;
+    [data-component="markdown"] {
+      margin-top: 0;
+      font-style: normal;
+      font-size: calc(var(--session-font-size, var(--font-size-base)) - 1px);
+      color: var(--text-weak);
 
-      &:first-child {
-        margin-top: 0;
+      strong,
+      b {
+        color: var(--text-weak);
+      }
+
+      p:has(strong) {
+        margin-top: 16px;
+        margin-bottom: 0;
+
+        &:first-child {
+          margin-top: 0;
+        }
       }
     }
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  [data-component="reasoning-part"] [data-component="markdown"] :not(pre) > code {
+  [data-component="reasoning-part"] [data-slot="reasoning-part-body"] [data-component="markdown"] :not(pre) > code {
     opacity: 0.6;
   }
 }

@@ -120,6 +120,7 @@ export function SessionComposerRegion(props: {
   const rolled = createMemo(() => (props.revert?.items.length ? props.revert : undefined))
   const lift = createMemo(() => (rolled() ? 18 : 36 * value()))
   const full = createMemo(() => Math.max(78, store.height))
+  const floatOffset = 24
 
   const openParent = () => {
     const id = parentID()
@@ -139,7 +140,8 @@ export function SessionComposerRegion(props: {
     <div
       ref={props.setPromptDockRef}
       data-component="session-prompt-dock"
-      class="shrink-0 w-full pb-3 flex flex-col justify-center items-center bg-background-stronger pointer-events-none"
+      class="absolute inset-x-0 bottom-0 z-40 w-full pb-6 flex flex-col justify-center items-center pointer-events-none"
+      style={{ transform: `translateY(-${floatOffset}px)` }}
     >
       <div
         classList={{

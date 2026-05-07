@@ -1,10 +1,13 @@
 [data-dock-surface="shell"] {
   background-color: var(--surface-raised-stronger-non-alpha);
-  box-shadow: var(--shadow-xs-border);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.16),
+    0 8px 22px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 10;
   border-radius: 12px;
   overflow: clip;
+  backdrop-filter: blur(16px);
 }
 
 [data-dock-surface="tray"] {

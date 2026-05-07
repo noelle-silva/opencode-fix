@@ -1558,18 +1558,40 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
 }
 
 PART_MAPPING["reasoning"] = function ReasoningPartDisplay(props) {
+  const i18n = useI18n()
   const part = () => props.part as ReasoningPart
   const streaming = createMemo(
     () => props.message.role === "assistant" && typeof (props.message as AssistantMessage).time.completed !== "number",
   )
   const text = () => part().text.trim()
+  const [open, setOpen] = createSignal(streaming())
+
+  createEffect(() => {
+    if (streaming()) setOpen(true)
+  })
 
   return (
     <Show when={text()}>
       <div data-component="reasoning-part">
-        <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
-          <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
-        </Show>
+        <Collapsible open={open()} onOpenChange={setOpen} variant="ghost" class="reasoning-collapsible">
+          <Collapsible.Trigger>
+            <div data-slot="reasoning-part-trigger">
+              <span data-slot="reasoning-part-title">
+                <Show when={streaming()} fallback={i18n.t("ui.messagePart.reasoning.title")}>
+                  <TextShimmer text={i18n.t("ui.messagePart.reasoning.title")} />
+                </Show>
+              </span>
+              <Collapsible.Arrow />
+            </div>
+          </Collapsible.Trigger>
+          <Collapsible.Content>
+            <div data-slot="reasoning-part-body" data-scrollable>
+              <Show when={streaming()} fallback={<Markdown text={text()} cacheKey={part().id} streaming={false} />}>
+                <PacedMarkdown text={text()} cacheKey={part().id} streaming={streaming()} />
+              </Show>
+            </div>
+          </Collapsible.Content>
+        </Collapsible>
       </div>
     </Show>
   )
