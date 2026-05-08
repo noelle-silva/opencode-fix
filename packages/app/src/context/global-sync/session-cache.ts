@@ -40,6 +40,10 @@ export function dropSessionCaches(store: SessionCache, sessionIDs: Iterable<stri
   }
 }
 
+export function runningSessionCacheIDs(store: Pick<SessionCache, "session_status">) {
+  return Object.entries(store.session_status).flatMap(([id, status]) => (status && status.type !== "idle" ? [id] : []))
+}
+
 export function pickSessionCacheEvictions(input: {
   seen: Set<string>
   keep: string

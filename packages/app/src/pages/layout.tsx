@@ -36,7 +36,7 @@ import { useProviders } from "@/hooks/use-providers"
 import { showToast, Toast, toaster } from "@opencode-ai/ui/toast"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { clearWorkspaceTerminals, getTerminalServerScope } from "@/context/terminal"
-import { dropSessionCaches, pickSessionCacheEvictions } from "@/context/global-sync/session-cache"
+import { dropSessionCaches, pickSessionCacheEvictions, runningSessionCacheIDs } from "@/context/global-sync/session-cache"
 import {
   clearSessionPrefetchInflight,
   clearSessionPrefetch,
@@ -697,11 +697,13 @@ export default function Layout(props: ParentProps) {
 
   const markPrefetched = (directory: string, sessionID: string) => {
     const lru = lruFor(directory)
+    const [store] = globalSync.child(directory, { bootstrap: false })
+    const active = params.id && pathKey(directory) === pathKey(currentDir()) ? [params.id] : []
     return pickSessionCacheEvictions({
       seen: lru,
       keep: sessionID,
       limit: PREFETCH_MAX_SESSIONS_PER_DIR,
-      preserve: params.id && pathKey(directory) === pathKey(currentDir()) ? [params.id] : undefined,
+      preserve: [...active, ...runningSessionCacheIDs(store)],
     })
   }
 

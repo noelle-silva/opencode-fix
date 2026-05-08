@@ -3,6 +3,7 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createQuery, skipToken, useMutation, useQueryClient } from "@tanstack/solid-query"
 import {
   batch,
+  For,
   onCleanup,
   Show,
   Match,
@@ -72,6 +73,10 @@ const emptyFollowups: FollowupItem[] = []
 
 type ChangeMode = "git" | "branch" | "turn"
 type VcsMode = "git" | "branch"
+type SessionViewCacheItem = {
+  key: string
+  id: string
+}
 
 type SessionHistoryWindowInput = {
   sessionID: () => string | undefined
@@ -100,41 +105,39 @@ function createSessionHistoryWindow(input: SessionHistoryWindowInput) {
   const prefetchNoGrowthLimit = 2
 
   const [state, setState] = createStore({
-    turnID: undefined as string | undefined,
-    turnStart: 0,
+    turnStart: {} as Record<string, number | undefined>,
     prefetchUntil: 0,
     prefetchNoGrowth: 0,
   })
 
   const initialTurnStart = (len: number) => (len > turnInit ? len - turnInit : 0)
 
-  const turnStart = createMemo(() => {
-    const id = input.sessionID()
-    const len = input.visibleUserMessages().length
+  const turnStartFor = (id: string | undefined, len: number) => {
     if (!id || len <= 0) return 0
-    if (state.turnID !== id) return initialTurnStart(len)
-    if (state.turnStart <= 0) return 0
-    if (state.turnStart >= len) return initialTurnStart(len)
-    return state.turnStart
-  })
+    const start = state.turnStart[id]
+    if (start === undefined) return initialTurnStart(len)
+    if (start <= 0) return 0
+    if (start >= len) return initialTurnStart(len)
+    return start
+  }
+
+  const turnStart = createMemo(() => turnStartFor(input.sessionID(), input.visibleUserMessages().length))
 
   const setTurnStart = (start: number) => {
     const id = input.sessionID()
     const next = start > 0 ? start : 0
-    if (!id) {
-      setState({ turnID: undefined, turnStart: next })
-      return
-    }
-    setState({ turnID: id, turnStart: next })
+    if (!id) return
+    setState("turnStart", id, next)
+  }
+
+  const renderedUserMessagesFor = (id: string | undefined, msgs: UserMessage[]) => {
+    const start = turnStartFor(id, msgs.length)
+    if (start <= 0) return msgs
+    return msgs.slice(start)
   }
 
   const renderedUserMessages = createMemo(
-    () => {
-      const msgs = input.visibleUserMessages()
-      const start = turnStart()
-      if (start <= 0) return msgs
-      return msgs.slice(start)
-    },
+    () => renderedUserMessagesFor(input.sessionID(), input.visibleUserMessages()),
     emptyUserMessages,
     {
       equals: same,
@@ -311,8 +314,10 @@ function createSessionHistoryWindow(input: SessionHistoryWindowInput) {
 
   return {
     turnStart,
+    turnStartFor,
     setTurnStart,
     renderedUserMessages,
+    renderedUserMessagesFor,
     loadAndReveal,
     onScrollerScroll,
   }
@@ -432,7 +437,19 @@ export default function Page() {
     if (!view().reviewPanel.opened()) view().reviewPanel.open()
   }
 
-  const info = createMemo(() => (params.id ? sync.session.get(params.id) : undefined))
+  const sessionInfo = (id: string | undefined) => (id ? sync.session.get(id) : undefined)
+  const sessionMessages = (id: string | undefined) => (id ? (sync.data.message[id] ?? []) : [])
+  const sessionMessagesReady = (id: string | undefined) => !id || sync.data.message[id] !== undefined
+  const sessionHistoryMore = (id: string | undefined) => (id ? sync.session.history.more(id) : false)
+  const sessionHistoryLoading = (id: string | undefined) => (id ? sync.session.history.loading(id) : false)
+  const sessionUserMessages = (id: string | undefined) => sessionMessages(id).filter((m) => m.role === "user") as UserMessage[]
+  const sessionVisibleUserMessages = (id: string | undefined) => {
+    const revert = sessionInfo(id)?.revert?.messageID
+    if (!revert) return sessionUserMessages(id)
+    return sessionUserMessages(id).filter((m) => m.id < revert)
+  }
+
+  const info = createMemo(() => sessionInfo(params.id))
   const isChildSession = createMemo(() => !!info()?.parentID)
   const diffs = createMemo(() => (params.id ? list(sync.data.session_diff[params.id]) : []))
   const canReview = createMemo(() => !!sync.project)
@@ -447,33 +464,17 @@ export default function Page() {
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
   const revertMessageID = createMemo(() => info()?.revert?.messageID)
-  const messages = createMemo(() => (params.id ? (sync.data.message[params.id] ?? []) : []))
-  const messagesReady = createMemo(() => {
-    const id = params.id
-    if (!id) return true
-    return sync.data.message[id] !== undefined
-  })
-  const historyMore = createMemo(() => {
-    const id = params.id
-    if (!id) return false
-    return sync.session.history.more(id)
-  })
-  const historyLoading = createMemo(() => {
-    const id = params.id
-    if (!id) return false
-    return sync.session.history.loading(id)
-  })
+  const messages = createMemo(() => sessionMessages(params.id))
+  const messagesReady = createMemo(() => sessionMessagesReady(params.id))
+  const historyMore = createMemo(() => sessionHistoryMore(params.id))
+  const historyLoading = createMemo(() => sessionHistoryLoading(params.id))
   const userMessages = createMemo(
-    () => messages().filter((m) => m.role === "user") as UserMessage[],
+    () => sessionUserMessages(params.id),
     emptyUserMessages,
     { equals: same },
   )
   const visibleUserMessages = createMemo(
-    () => {
-      const revert = revertMessageID()
-      if (!revert) return userMessages()
-      return userMessages().filter((m) => m.id < revert)
-    },
+    () => sessionVisibleUserMessages(params.id),
     emptyUserMessages,
     {
       equals: same,
@@ -518,6 +519,7 @@ export default function Page() {
     changes: "git" as ChangeMode,
     newSessionWorktree: "main",
     deferRender: false,
+    sessionViews: [] as SessionViewCacheItem[],
   })
 
   const [followup, setFollowup] = persisted(
@@ -1586,6 +1588,39 @@ export default function Page() {
 
   const followupDock = createMemo(() => queuedFollowups().map((item) => ({ id: item.id, text: followupText(item) })))
 
+  const sessionViewLimit = 8
+  const runningSessionIDs = createMemo(
+    () =>
+      Object.entries(sync.data.session_status).flatMap(([id, status]) => {
+        if (status?.type === "idle") return []
+        if (!sync.session.get(id)) return []
+        return [id]
+      }),
+    [] as string[],
+    { equals: same },
+  )
+
+  const touchSessionView = (id: string) => {
+    const key = `${workspaceKey()}/${id}`
+    setStore("sessionViews", (items) => {
+      const running = new Set(runningSessionIDs())
+      const next = [{ key, id }, ...items.filter((item) => item.key !== key)]
+      return next.filter((item, index) => index < sessionViewLimit || running.has(item.id))
+    })
+  }
+
+  createEffect(() => {
+    const id = params.id
+    if (!id) return
+    touchSessionView(id)
+  })
+
+  createEffect(() => {
+    for (const id of runningSessionIDs()) {
+      touchSessionView(id)
+    }
+  })
+
   const sendFollowup = (sessionID: string, id: string, opts?: { manual?: boolean }) => {
     if (sync.session.get(sessionID)?.parentID) return Promise.resolve()
     const item = (followup.items[sessionID] ?? []).find((entry) => entry.id === id)
@@ -1713,6 +1748,68 @@ export default function Page() {
   const restore = (id: string) => {
     if (!params.id || reverting()) return
     return restoreMutation.mutateAsync(id)
+  }
+
+  const cachedTimeline = (item: SessionViewCacheItem) => {
+    const active = () => params.id === item.id
+    const visible = createMemo(() => sessionVisibleUserMessages(item.id), emptyUserMessages, { equals: same })
+    return (
+      <div
+        class="absolute inset-0"
+        aria-hidden={!active()}
+        inert={!active()}
+        classList={{ "pointer-events-none invisible": !active() }}
+      >
+        <Show when={!active() || sessionMessagesReady(item.id)}>
+          <MessageTimeline
+            active={active()}
+            sessionID={item.id}
+            sessionKey={item.key}
+            sessionMessages={sessionMessages(item.id)}
+            sessionStatus={sync.data.session_status[item.id]}
+            mobileChanges={mobileChanges()}
+            mobileFallback={reviewContent({
+              diffStyle: "unified",
+              classes: {
+                root: "pb-8",
+                header: "px-4",
+                container: "px-4",
+              },
+              loadingClass: "px-4 py-4 text-text-weak",
+              emptyClass: "h-full pb-64 -mt-4 flex flex-col items-center justify-center text-center gap-6",
+            })}
+            actions={actions}
+            scroll={ui.scroll}
+            onResumeScroll={resumeScroll}
+            setScrollRef={setScrollRef}
+            onScheduleScrollState={scheduleScrollState}
+            onAutoScrollHandleScroll={autoScroll.handleScroll}
+            onMarkScrollGesture={markScrollGesture}
+            hasScrollGesture={hasScrollGesture}
+            onUserScroll={markUserScroll}
+            onTurnBackfillScroll={historyWindow.onScrollerScroll}
+            onAutoScrollInteraction={autoScroll.handleInteraction}
+            centered={centered()}
+            setContentRef={(el) => {
+              content = el
+              autoScroll.contentRef(el)
+
+              const root = scroller
+              if (root) scheduleScrollState(root)
+            }}
+            turnStart={historyWindow.turnStartFor(item.id, visible().length)}
+            historyMore={sessionHistoryMore(item.id)}
+            historyLoading={sessionHistoryLoading(item.id)}
+            onLoadEarlier={() => {
+              if (item.id !== params.id) return
+              void historyWindow.loadAndReveal()
+            }}
+            renderedUserMessages={historyWindow.renderedUserMessagesFor(item.id, visible())}
+            anchor={(id) => (active() ? anchor(id) : `cached-${item.id}-${id}`)}
+          />
+        </Show>
+      </div>
+    )
   }
 
   const rolled = createMemo(() => {
@@ -1859,48 +1956,9 @@ export default function Page() {
           <div class="flex-1 min-h-0 overflow-hidden">
             <Switch>
               <Match when={params.id}>
-                <Show when={messagesReady()}>
-                  <MessageTimeline
-                    mobileChanges={mobileChanges()}
-                    mobileFallback={reviewContent({
-                      diffStyle: "unified",
-                      classes: {
-                        root: "pb-8",
-                        header: "px-4",
-                        container: "px-4",
-                      },
-                      loadingClass: "px-4 py-4 text-text-weak",
-                      emptyClass: "h-full pb-64 -mt-4 flex flex-col items-center justify-center text-center gap-6",
-                    })}
-                    actions={actions}
-                    scroll={ui.scroll}
-                    onResumeScroll={resumeScroll}
-                    setScrollRef={setScrollRef}
-                    onScheduleScrollState={scheduleScrollState}
-                    onAutoScrollHandleScroll={autoScroll.handleScroll}
-                    onMarkScrollGesture={markScrollGesture}
-                    hasScrollGesture={hasScrollGesture}
-                    onUserScroll={markUserScroll}
-                    onTurnBackfillScroll={historyWindow.onScrollerScroll}
-                    onAutoScrollInteraction={autoScroll.handleInteraction}
-                    centered={centered()}
-                    setContentRef={(el) => {
-                      content = el
-                      autoScroll.contentRef(el)
-
-                      const root = scroller
-                      if (root) scheduleScrollState(root)
-                    }}
-                    turnStart={historyWindow.turnStart()}
-                    historyMore={historyMore()}
-                    historyLoading={historyLoading()}
-                    onLoadEarlier={() => {
-                      void historyWindow.loadAndReveal()
-                    }}
-                    renderedUserMessages={historyWindow.renderedUserMessages()}
-                    anchor={anchor}
-                  />
-                </Show>
+                <div class="relative size-full overflow-hidden">
+                  <For each={store.sessionViews}>{cachedTimeline}</For>
+                </div>
               </Match>
               <Match when={true}>
                 <NewSessionView worktree={newSessionWorktree()} />

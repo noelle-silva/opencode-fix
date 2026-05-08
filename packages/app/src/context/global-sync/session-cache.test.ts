@@ -8,7 +8,7 @@ import type {
   SnapshotFileDiff,
   Todo,
 } from "@opencode-ai/sdk/v2/client"
-import { dropSessionCaches, pickSessionCacheEvictions } from "./session-cache"
+import { dropSessionCaches, pickSessionCacheEvictions, runningSessionCacheIDs } from "./session-cache"
 
 const msg = (id: string, sessionID: string) =>
   ({
@@ -98,5 +98,17 @@ describe("app session cache", () => {
 
     expect(stale).toEqual(["ses_2", "ses_3"])
     expect([...seen]).toEqual(["ses_1", "ses_4"])
+  })
+
+  test("runningSessionCacheIDs returns non-idle sessions", () => {
+    expect(
+      runningSessionCacheIDs({
+        session_status: {
+          ses_1: { type: "idle" } as SessionStatus,
+          ses_2: { type: "busy" } as SessionStatus,
+          ses_3: undefined,
+        },
+      }),
+    ).toEqual(["ses_2"])
   })
 })

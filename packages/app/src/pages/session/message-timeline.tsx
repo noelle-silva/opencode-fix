@@ -5,15 +5,17 @@ import { FileIcon } from "@opencode-ai/ui/file-icon"
 import { Icon } from "@opencode-ai/ui/icon"
 import { SessionTurn } from "@opencode-ai/ui/session-turn"
 import { ScrollView } from "@opencode-ai/ui/scroll-view"
-import type { AssistantMessage, Message as MessageType, Part, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
+import type { AssistantMessage, Message as MessageType, Part, SessionStatus, TextPart, UserMessage } from "@opencode-ai/sdk/v2"
 import { Binary } from "@opencode-ai/core/util/binary"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { useLanguage } from "@/context/language"
-import { useSessionKey } from "@/pages/session/session-layout"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { parseCommentNote, readCommentMetadata } from "@/utils/comment-note"
+
+const inactiveScroll = { overflow: false, bottom: true, jump: false }
+const idle = { type: "idle" as const }
 
 type MessageComment = {
   path: string
@@ -25,7 +27,6 @@ type MessageComment = {
 }
 
 const emptyMessages: MessageType[] = []
-const idle = { type: "idle" as const }
 type UserActions = {
   fork?: (input: { sessionID: string; messageID: string }) => Promise<void> | void
   regenerate?: (input: { sessionID: string; messageID: string }) => Promise<void> | void
@@ -180,6 +181,11 @@ function createTimelineStaging(input: TimelineStageInput) {
 }
 
 export function MessageTimeline(props: {
+  active: boolean
+  sessionID: string
+  sessionKey: string
+  sessionMessages: MessageType[]
+  sessionStatus: SessionStatus | undefined
   mobileChanges: boolean
   mobileFallback: JSX.Element
   actions?: UserActions
@@ -203,29 +209,21 @@ export function MessageTimeline(props: {
   anchor: (id: string) => string
 }) {
   let touchGesture: number | undefined
+  let viewport: HTMLDivElement | undefined
+  let content: HTMLDivElement | undefined
 
   const sync = useSync()
   const settings = useSettings()
   const language = useLanguage()
-  const { params, sessionKey } = useSessionKey()
 
   const rendered = createMemo(() => props.renderedUserMessages.map((message) => message.id))
-  const sessionID = createMemo(() => params.id)
-  const sessionMessages = createMemo(() => {
-    const id = sessionID()
-    if (!id) return emptyMessages
-    return sync.data.message[id] ?? emptyMessages
-  })
+  const sessionMessages = createMemo(() => props.sessionMessages ?? emptyMessages)
   const pending = createMemo(() =>
     sessionMessages().findLast(
       (item): item is AssistantMessage => item.role === "assistant" && typeof item.time.completed !== "number",
     ),
   )
-  const sessionStatus = createMemo(() => {
-    const id = sessionID()
-    if (!id) return idle
-    return sync.data.session_status[id] ?? idle
-  })
+  const sessionStatus = createMemo(() => props.sessionStatus ?? idle)
 
   const activeMessageID = createMemo(() => {
     const parentID = pending()?.parentID
@@ -248,11 +246,29 @@ export function MessageTimeline(props: {
   })
   const stageCfg = { init: 1, batch: 3 }
   const staging = createTimelineStaging({
-    sessionKey,
+    sessionKey: () => props.sessionKey,
     turnStart: () => props.turnStart,
     messages: () => props.renderedUserMessages,
     config: stageCfg,
   })
+
+  const setViewportRef = (el: HTMLDivElement | undefined) => {
+    viewport = el
+    if (props.active) props.setScrollRef(el)
+  }
+
+  const setContentRef = (el: HTMLDivElement) => {
+    content = el
+    if (props.active) props.setContentRef(el)
+  }
+
+  createEffect(() => {
+    if (!props.active) return
+    props.setScrollRef(viewport)
+    if (content) props.setContentRef(content)
+  })
+
+  const scroll = () => (props.active ? props.scroll : inactiveScroll)
 
   return (
     <Show
@@ -263,9 +279,9 @@ export function MessageTimeline(props: {
         <div
           class="absolute left-1/2 -translate-x-1/2 bottom-6 z-[60] pointer-events-none transition-all duration-200 ease-out"
           classList={{
-            "opacity-100 translate-y-0 scale-100": props.scroll.overflow && props.scroll.jump && !staging.isStaging(),
+            "opacity-100 translate-y-0 scale-100": scroll().overflow && scroll().jump && !staging.isStaging(),
             "opacity-0 translate-y-2 scale-95 pointer-events-none":
-              !props.scroll.overflow || !props.scroll.jump || staging.isStaging(),
+              !scroll().overflow || !scroll().jump || staging.isStaging(),
           }}
         >
           <button
@@ -284,8 +300,9 @@ export function MessageTimeline(props: {
           </button>
         </div>
         <ScrollView
-          viewportRef={props.setScrollRef}
+          viewportRef={setViewportRef}
           onWheel={(e) => {
+            if (!props.active) return
             const root = e.currentTarget
             const delta = normalizeWheelDelta({
               deltaY: e.deltaY,
@@ -296,9 +313,11 @@ export function MessageTimeline(props: {
             markBoundaryGesture({ root, target: e.target, delta, onMarkScrollGesture: props.onMarkScrollGesture })
           }}
           onTouchStart={(e) => {
+            if (!props.active) return
             touchGesture = e.touches[0]?.clientY
           }}
           onTouchMove={(e) => {
+            if (!props.active) return
             const next = e.touches[0]?.clientY
             const prev = touchGesture
             touchGesture = next
@@ -311,16 +330,20 @@ export function MessageTimeline(props: {
             markBoundaryGesture({ root, target: e.target, delta, onMarkScrollGesture: props.onMarkScrollGesture })
           }}
           onTouchEnd={() => {
+            if (!props.active) return
             touchGesture = undefined
           }}
           onTouchCancel={() => {
+            if (!props.active) return
             touchGesture = undefined
           }}
           onPointerDown={(e) => {
+            if (!props.active) return
             if (e.target !== e.currentTarget) return
             props.onMarkScrollGesture(e.currentTarget)
           }}
           onScroll={(e) => {
+            if (!props.active) return
             props.onScheduleScrollState(e.currentTarget)
             props.onTurnBackfillScroll()
             if (!props.hasScrollGesture()) return
@@ -328,14 +351,17 @@ export function MessageTimeline(props: {
             props.onAutoScrollHandleScroll()
             props.onMarkScrollGesture(e.currentTarget)
           }}
-          onClick={props.onAutoScrollInteraction}
+          onClick={(e) => {
+            if (!props.active) return
+            props.onAutoScrollInteraction(e)
+          }}
           class="relative min-w-0 w-full h-full"
           style={{
             "--session-title-height": "0px",
             "--sticky-accordion-top": "0px",
           }}
         >
-          <div ref={props.setContentRef} class="min-w-0 w-full">
+          <div ref={setContentRef} class="min-w-0 w-full">
             <div
               role="log"
               data-slot="session-turn-list"
@@ -379,7 +405,7 @@ export function MessageTimeline(props: {
                   const commentCount = createMemo(() => comments().length)
                   return (
                     <div
-                      id={props.anchor(messageID)}
+                      id={props.active ? props.anchor(messageID) : undefined}
                       data-message-id={messageID}
                       classList={{
                         "min-w-0 w-full max-w-full": true,
@@ -431,7 +457,7 @@ export function MessageTimeline(props: {
                         </div>
                       </Show>
                       <SessionTurn
-                        sessionID={sessionID() ?? ""}
+                        sessionID={props.sessionID}
                         messageID={messageID}
                         messages={sessionMessages()}
                         actions={props.actions}

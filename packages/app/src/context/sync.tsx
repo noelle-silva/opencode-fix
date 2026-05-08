@@ -12,7 +12,12 @@ import {
 import { useGlobalSync } from "./global-sync"
 import { useSDK } from "./sdk"
 import type { Message, Part } from "@opencode-ai/sdk/v2/client"
-import { SESSION_CACHE_LIMIT, dropSessionCaches, pickSessionCacheEvictions } from "./global-sync/session-cache"
+import {
+  SESSION_CACHE_LIMIT,
+  dropSessionCaches,
+  pickSessionCacheEvictions,
+  runningSessionCacheIDs,
+} from "./global-sync/session-cache"
 import { diffs as list, message as clean } from "@/utils/diffs"
 
 const SKIP_PARTS = new Set(["patch", "step-start", "step-finish"])
@@ -283,10 +288,12 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     }
 
     const touch = (directory: string, setStore: Setter, sessionID: string) => {
+      const [store] = globalSync.child(directory, { bootstrap: false })
       const stale = pickSessionCacheEvictions({
         seen: seenFor(directory),
         keep: sessionID,
         limit: SESSION_CACHE_LIMIT,
+        preserve: runningSessionCacheIDs(store),
       })
       evict(directory, setStore, stale)
     }
