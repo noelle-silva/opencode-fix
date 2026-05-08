@@ -85,6 +85,7 @@ export const WorkspaceDragOverlay = (props: {
 const WorkspaceHeader = (props: {
   local: Accessor<boolean>
   busy: Accessor<boolean>
+  active: Accessor<boolean>
   open: Accessor<boolean>
   directory: string
   language: ReturnType<typeof useLanguage>
@@ -97,8 +98,16 @@ const WorkspaceHeader = (props: {
   projectId?: string
 }): JSX.Element => (
   <div class="flex items-center gap-1 min-w-0 flex-1">
-    <div class="flex items-center justify-center shrink-0 size-6">
-      <Show when={props.busy()} fallback={<Icon name="branch" size="small" />}>
+    <div
+      class="flex items-center justify-center shrink-0 size-6 rounded-md transition-colors text-icon-base"
+      style={{ "box-shadow": props.active() ? "inset 0 0 0 2px #111" : "none" }}
+    >
+      <Show
+        when={props.busy()}
+        fallback={
+          <Icon name="branch" size="small" class="text-icon-base" />
+        }
+      >
         <Spinner class="size-[15px]" />
       </Show>
     </div>
@@ -336,6 +345,7 @@ export const SortableWorkspace = (props: {
     <WorkspaceHeader
       local={local}
       busy={busy}
+      active={active}
       open={open}
       directory={props.directory}
       language={language}
@@ -381,9 +391,15 @@ export const SortableWorkspace = (props: {
                 when={workspaceEditActive()}
                 fallback={
                   <Collapsible.Trigger
-                    class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md hover:bg-surface-raised-base-hover transition-[padding] duration-200 ${
+                    class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md transition-[padding,background-color,box-shadow] duration-200 ${
                       menu.open ? "pr-16" : "pr-2"
                     } group-hover/workspace:pr-16 group-focus-within/workspace:pr-16`}
+                    classList={{
+                      "shadow-none": active(),
+                      "hover:bg-surface-raised-base-hover": !active(),
+                    }}
+                    style={{ "box-shadow": active() ? "inset 0 0 0 2px #111" : "none" }}
+                    aria-current={active() ? "page" : undefined}
                     data-action="workspace-toggle"
                     data-workspace={base64Encode(props.directory)}
                   >
@@ -392,9 +408,13 @@ export const SortableWorkspace = (props: {
                 }
               >
                 <div
-                  class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md transition-[padding] duration-200 ${
+                  class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md transition-[padding,background-color,box-shadow] duration-200 ${
                     menu.open ? "pr-16" : "pr-2"
                   } group-hover/workspace:pr-16 group-focus-within/workspace:pr-16`}
+                  classList={{
+                    "shadow-none": active(),
+                  }}
+                  style={{ "box-shadow": active() ? "inset 0 0 0 2px #111" : "none" }}
                 >
                   {header()}
                 </div>

@@ -61,8 +61,8 @@ export const ProjectIcon = (props: {
 
   return (
     <div
-      class={`relative size-8 shrink-0 rounded ${props.class ?? ""}`}
-      classList={{ "outline outline-2 outline-[#000] outline-offset-1": props.selected }}
+      class={`relative size-8 shrink-0 rounded transition-shadow ${props.class ?? ""}`}
+      style={{ "box-shadow": props.selected ? "0 0 0 2px var(--background-base), 0 0 0 4px #111" : "none" }}
     >
       <div class="size-full rounded overflow-clip">
         <Avatar
