@@ -11,6 +11,7 @@ import { useLayout } from "@/context/layout"
 import { useLocal } from "@/context/local"
 import { usePermission } from "@/context/permission"
 import { type ContextItem, type ImageAttachmentPart, type Prompt, usePrompt } from "@/context/prompt"
+import { type EphemeralContextPreset, useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { Identifier } from "@/utils/id"
@@ -34,6 +35,7 @@ export type FollowupDraft = {
   agent: string
   model: { providerID: string; modelID: string }
   variant?: string
+  ephemeralContext?: EphemeralContextPreset
 }
 
 type FollowupSendInput = {
@@ -49,6 +51,18 @@ type FollowupSendInput = {
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
 
 const draftImages = (prompt: Prompt) => prompt.filter((part): part is ImageAttachmentPart => part.type === "image")
+
+const ephemeralMessages = (preset: EphemeralContextPreset | undefined) => {
+  if (!preset?.enabled) return undefined
+  const messages = preset.messages
+    .filter((message) => message.enabled && message.content.trim().length > 0)
+    .map((message) => ({
+      role: message.role,
+      position: message.position,
+      content: message.content,
+    }))
+  return messages.length > 0 ? messages : undefined
+}
 
 export async function sendFollowupDraft(input: FollowupSendInput) {
   const text = draftText(input.draft.prompt)
@@ -157,6 +171,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
       agent: input.draft.agent,
       model: input.draft.model,
       messageID,
+      ephemeral: ephemeralMessages(input.draft.ephemeralContext),
       parts: requestParts,
       variant: input.draft.variant,
     })
@@ -211,6 +226,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const prompt = usePrompt()
   const layout = useLayout()
   const language = useLanguage()
+  const settings = useSettings()
   const params = useParams()
 
   const errorMessage = (err: unknown) => {
@@ -395,6 +411,9 @@ export function createPromptSubmit(input: PromptSubmitInput) {
     }
     const agent = currentAgent.name
     const context = prompt.context.items().slice()
+    const ephemeralContext = settings.ephemeralContexts
+      .presets()
+      .find((preset) => preset.id === settings.ephemeralContexts.selected())
     const draft: FollowupDraft = {
       sessionID: session.id,
       sessionDirectory,
@@ -403,6 +422,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       agent,
       model,
       variant,
+      ephemeralContext,
     }
 
     const clearInput = () => {

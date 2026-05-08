@@ -10,6 +10,7 @@ import { SettingsProviders } from "./settings-providers"
 import { SettingsModels } from "./settings-models"
 import { SettingsStorage } from "./settings-storage"
 import { SettingsWallpapers } from "./settings-wallpapers"
+import { SettingsEphemeralContexts } from "./settings-ephemeral-contexts"
 
 export const DialogSettings: Component = () => {
   const language = useLanguage()
@@ -40,6 +41,10 @@ export const DialogSettings: Component = () => {
                     <Tabs.Trigger value="wallpapers">
                       <Icon name="photo" />
                       {language.t("settings.tab.wallpapers")}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger value="ephemeral-contexts">
+                      <Icon name="bullet-list" />
+                      {language.t("settings.ephemeralContexts.title")}
                     </Tabs.Trigger>
                   </div>
                 </div>
@@ -76,6 +81,9 @@ export const DialogSettings: Component = () => {
         </Tabs.Content>
         <Tabs.Content value="wallpapers" class="no-scrollbar">
           <SettingsWallpapers />
+        </Tabs.Content>
+        <Tabs.Content value="ephemeral-contexts" class="no-scrollbar">
+          <SettingsEphemeralContexts />
         </Tabs.Content>
         <Tabs.Content value="providers" class="no-scrollbar">
           <SettingsProviders />

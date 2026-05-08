@@ -374,6 +374,45 @@ it.live("loop calls LLM and returns assistant message", () =>
   ),
 )
 
+it.live("prompt injects ephemeral messages only into the model request", () =>
+  provideTmpdirServer(
+    Effect.fnUntraced(function* ({ llm }) {
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Ephemeral",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+
+      yield* llm.text("world")
+      yield* prompt.prompt({
+        sessionID: chat.id,
+        agent: "build",
+        parts: [{ type: "text", text: "real user" }],
+        ephemeral: [
+          { role: "system", position: "session_top", content: "top system" },
+          { role: "user", position: "before_user", content: "before user" },
+          { role: "assistant", position: "after_user", content: "after assistant" },
+        ],
+      })
+
+      const [input] = yield* llm.inputs
+      const request = JSON.stringify(input)
+      expect(request).toContain("top system")
+      expect(request).toContain("before user")
+      expect(request).toContain("after assistant")
+      expect(request.indexOf("top system")).toBeLessThan(request.indexOf("real user"))
+      expect(request.indexOf("before user")).toBeLessThan(request.indexOf("real user"))
+      expect(request.indexOf("after assistant")).toBeGreaterThan(request.indexOf("real user"))
+      const messages = JSON.stringify(yield* sessions.messages({ sessionID: chat.id }))
+      expect(messages).not.toContain("top system")
+      expect(messages).not.toContain("before user")
+      expect(messages).not.toContain("after assistant")
+    }),
+    { git: true, config: providerCfg },
+  ),
+)
+
 it.live("prompt emits v2 prompted and synthetic events", () =>
   provideTmpdirServer(
     Effect.fnUntraced(function* () {

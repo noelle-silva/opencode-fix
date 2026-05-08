@@ -35,6 +35,7 @@ import { useCommand } from "@/context/command"
 import { Persist, persisted } from "@/utils/persist"
 import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
+import { useSettings } from "@/context/settings"
 import { usePlatform } from "@/context/platform"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
@@ -118,6 +119,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const command = useCommand()
   const permission = usePermission()
   const language = useLanguage()
+  const settings = useSettings()
   const platform = usePlatform()
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const { params, tabs, view } = useSessionLayout()
@@ -1269,6 +1271,21 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const agentsShouldFadeIn = createMemo((prev) => prev ?? agentsLoading())
   const providersLoading = () => agentsLoading() || providersQuery.isLoading || globalProvidersQuery.isLoading
   const providersShouldFadeIn = createMemo((prev) => prev ?? providersLoading())
+  const emptyEphemeralContext = () => ({ id: "", name: language.t("prompt.ephemeralContext.none"), category: "" })
+  const ephemeralContextOptions = createMemo(() => [
+    emptyEphemeralContext(),
+    ...settings.ephemeralContexts.presets().map((preset) => ({
+      id: preset.id,
+      name: preset.name,
+      category: preset.category.trim() || language.t("settings.ephemeralContexts.group.ungrouped"),
+    })),
+  ])
+  const currentEphemeralContext = createMemo(
+    () => {
+      const options = ephemeralContextOptions()
+      return options.find((option) => option.id === (settings.ephemeralContexts.selected() ?? "")) ?? options[0]
+    },
+  )
 
   const ShellModeControls = () => (
     <div
@@ -1437,6 +1454,28 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               <SessionContextUsage variant="inline" />
             </div>
           </Show>
+          <Show when={settings.ephemeralContexts.presets().length > 0}>
+            <div data-component="prompt-ephemeral-context-control" class="min-w-0 shrink">
+              <Select
+                size="normal"
+                options={ephemeralContextOptions()}
+                current={currentEphemeralContext()}
+                value={(option) => option.id}
+                label={(option) => option.name}
+                groupBy={(option) => option.category}
+                onSelect={(option) => {
+                  settings.ephemeralContexts.setSelected(option?.id || null)
+                  restoreFocus()
+                }}
+                selectOnPointerDown
+                class="min-w-0 max-w-[180px] text-text-base"
+                valueClass="truncate text-13-regular text-text-base"
+                triggerStyle={control()}
+                triggerProps={{ "data-action": "prompt-ephemeral-context" }}
+                variant="ghost"
+              />
+            </div>
+          </Show>
         </Show>
       </Show>
     </>
@@ -1505,7 +1544,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             if (!(target instanceof HTMLElement)) return
             if (
               target.closest(
-                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-component="prompt-inline-controls"]',
+                '[data-action="prompt-attach"], [data-action="prompt-submit"], [data-component="prompt-inline-controls"], [data-action="prompt-ephemeral-context"]',
               )
             ) {
               return

@@ -33,6 +33,27 @@ export interface WallpaperSettingsItem {
   blur: number
 }
 
+export type EphemeralContextRole = "system" | "user" | "assistant"
+export type EphemeralContextPosition = "session_top" | "before_user" | "after_user"
+
+export interface EphemeralContextMessage {
+  id: string
+  title: string
+  role: EphemeralContextRole
+  position: EphemeralContextPosition
+  content: string
+  enabled: boolean
+}
+
+export interface EphemeralContextPreset {
+  id: string
+  name: string
+  description: string
+  category: string
+  enabled: boolean
+  messages: EphemeralContextMessage[]
+}
+
 export interface Settings {
   general: {
     autoSave: boolean
@@ -66,6 +87,10 @@ export interface Settings {
   wallpapers: {
     active: string | null
     items: WallpaperSettingsItem[]
+  }
+  ephemeralContexts: {
+    selected: string | null
+    presets: EphemeralContextPreset[]
   }
 }
 
@@ -167,6 +192,10 @@ const defaultSettings: Settings = {
     active: null,
     items: [],
   },
+  ephemeralContexts: {
+    selected: null,
+    presets: [],
+  },
 }
 
 function withFallback<T>(read: () => T | undefined, fallback: T) {
@@ -190,6 +219,43 @@ function wallpaperItem(value: WallpaperSettingsItem): WallpaperSettingsItem {
     fit: "contain",
     opacity: Number.isFinite(value.opacity) ? Math.max(0, Math.min(1, value.opacity)) : 1,
     blur: Number.isFinite(value.blur) ? Math.max(0, Math.min(40, value.blur)) : 0,
+  }
+}
+
+function id() {
+  if (typeof crypto === "object" && "randomUUID" in crypto) return crypto.randomUUID()
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function ephemeralRole(value: string | undefined): EphemeralContextRole {
+  if (value === "system" || value === "assistant") return value
+  return "user"
+}
+
+function ephemeralPosition(value: string | undefined): EphemeralContextPosition {
+  if (value === "session_top" || value === "after_user") return value
+  return "before_user"
+}
+
+function ephemeralMessage(value: EphemeralContextMessage): EphemeralContextMessage {
+  return {
+    id: value.id || id(),
+    title: value.title ?? "",
+    role: ephemeralRole(value.role),
+    position: ephemeralPosition(value.position),
+    content: value.content ?? "",
+    enabled: value.enabled !== false,
+  }
+}
+
+function ephemeralPreset(value: EphemeralContextPreset): EphemeralContextPreset {
+  return {
+    id: value.id || id(),
+    name: value.name || "Untitled preset",
+    description: value.description ?? "",
+    category: value.category ?? "",
+    enabled: value.enabled !== false,
+    messages: (value.messages ?? []).map(ephemeralMessage),
   }
 }
 
@@ -393,6 +459,30 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         remove(id: string) {
           setStore("wallpapers", "items", (items = []) => items.filter((item) => item.id !== id))
           setStore("wallpapers", "active", (active) => (active === id ? null : active))
+        },
+      },
+      ephemeralContexts: {
+        selected: withFallback(() => store.ephemeralContexts?.selected, defaultSettings.ephemeralContexts.selected),
+        presets: withFallback(
+          () => store.ephemeralContexts?.presets?.map(ephemeralPreset),
+          defaultSettings.ephemeralContexts.presets,
+        ),
+        setSelected(id: string | null) {
+          setStore("ephemeralContexts", "selected", id)
+        },
+        upsert(preset: EphemeralContextPreset) {
+          const next = ephemeralPreset(preset)
+          setStore("ephemeralContexts", "presets", (presets = []) => {
+            if (presets.some((candidate) => candidate.id === next.id)) {
+              return presets.map((candidate) => (candidate.id === next.id ? next : candidate))
+            }
+            return [...presets, next]
+          })
+          setStore("ephemeralContexts", "selected", next.id)
+        },
+        remove(id: string) {
+          setStore("ephemeralContexts", "presets", (presets = []) => presets.filter((preset) => preset.id !== id))
+          setStore("ephemeralContexts", "selected", (selected) => (selected === id ? null : selected))
         },
       },
     }
