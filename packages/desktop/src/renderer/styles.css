@@ -23,3 +23,60 @@ html[data-platform="desktop"]
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+html[data-platform="desktop"] {
+  --desktop-tool-glass-bg: color-mix(in srgb, var(--surface-raised-stronger-non-alpha) 54%, transparent);
+  --desktop-tool-glass-bg-hover: color-mix(in srgb, var(--surface-raised-stronger-non-alpha) 66%, transparent);
+  --desktop-tool-glass-bg-open: color-mix(in srgb, var(--background-stronger) 58%, transparent);
+  --desktop-tool-glass-shadow: 0 10px 28px color-mix(in srgb, var(--background-base) 16%, transparent);
+}
+
+html[data-platform="desktop"]
+  [data-slot="session-turn-assistant-content"]
+  [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-trigger"]
+  :where([data-component="tool-trigger"], [data-component="context-tool-group-trigger"]) {
+  background-color: var(--desktop-tool-glass-bg) !important;
+  border-color: transparent !important;
+  box-shadow: var(--desktop-tool-glass-shadow);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+}
+
+html[data-platform="desktop"]
+  [data-slot="session-turn-assistant-content"]
+  [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-trigger"]:where([aria-expanded="true"], :focus-visible) {
+  background-color: var(--desktop-tool-glass-bg-open) !important;
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+}
+
+html[data-platform="desktop"]
+  [data-slot="session-turn-assistant-content"]
+  [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-trigger"][aria-expanded="true"]
+  :where([data-component="tool-trigger"], [data-component="context-tool-group-trigger"]) {
+  background-color: var(--desktop-tool-glass-bg-open) !important;
+}
+
+html[data-platform="desktop"]
+  [data-slot="session-turn-assistant-content"]
+  [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-content"] {
+  background-color: var(--desktop-tool-glass-bg-open) !important;
+  border-color: transparent !important;
+  border-radius: var(--radius-md);
+  box-shadow: var(--desktop-tool-glass-shadow);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+}
+
+html[data-platform="desktop"]
+  [data-slot="session-turn-assistant-content"]
+  [data-component="collapsible"].tool-collapsible
+  > [data-slot="collapsible-trigger"]
+  :where([data-component="tool-trigger"], [data-component="context-tool-group-trigger"]):where(:hover, :focus-within) {
+  background-color: var(--desktop-tool-glass-bg-hover) !important;
+  border-color: transparent !important;
+}
