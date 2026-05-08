@@ -1604,8 +1604,11 @@ export default function Page() {
     const key = `${workspaceKey()}/${id}`
     setStore("sessionViews", (items) => {
       const running = new Set(runningSessionIDs())
-      const next = [{ key, id }, ...items.filter((item) => item.key !== key)]
-      return next.filter((item, index) => index < sessionViewLimit || running.has(item.id))
+      const current = items.find((item) => item.key === key)
+      const next = [current ?? { key, id }, ...items.filter((item) => item.key !== key)].filter(
+        (item, index) => index < sessionViewLimit || running.has(item.id),
+      )
+      return same(items, next) ? items : next
     })
   }
 
