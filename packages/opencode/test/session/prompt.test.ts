@@ -413,6 +413,48 @@ it.live("prompt injects ephemeral messages only into the model request", () =>
   ),
 )
 
+it.live("prompt injects ephemeral messages around the latest model message", () =>
+  provideTmpdirServer(
+    Effect.fnUntraced(function* ({ dir, llm }) {
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Ephemeral latest",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      const file = path.join(dir, "ephemeral-latest-probe.txt")
+      yield* Effect.promise(() => Bun.write(file, "probe"))
+
+      yield* llm.tool("glob", { pattern: "**/ephemeral-latest-probe.txt" })
+      yield* llm.text("done")
+      yield* prompt.prompt({
+        sessionID: chat.id,
+        agent: "build",
+        parts: [{ type: "text", text: "real user" }],
+        ephemeral: [
+          { role: "system", position: "before_latest", content: "before latest" },
+          { role: "assistant", position: "after_latest", content: "after latest" },
+        ],
+      })
+
+      const inputs = yield* llm.inputs
+      expect(inputs).toHaveLength(2)
+      const firstRequest = JSON.stringify(inputs[0])
+      const secondRequest = JSON.stringify(inputs[1]).replaceAll("\\\\", "\\")
+      expect(firstRequest.indexOf("before latest")).toBeLessThan(firstRequest.indexOf("real user"))
+      expect(firstRequest.indexOf("after latest")).toBeGreaterThan(firstRequest.indexOf("real user"))
+      expect(secondRequest.indexOf("before latest")).toBeGreaterThan(secondRequest.indexOf("real user"))
+      expect(secondRequest.indexOf("before latest")).toBeLessThan(secondRequest.indexOf(file))
+      expect(secondRequest.indexOf("after latest")).toBeGreaterThan(secondRequest.indexOf(file))
+
+      const messages = JSON.stringify(yield* sessions.messages({ sessionID: chat.id }))
+      expect(messages).not.toContain("before latest")
+      expect(messages).not.toContain("after latest")
+    }),
+    { git: true, config: providerCfg },
+  ),
+)
+
 it.live("prompt emits v2 prompted and synthetic events", () =>
   provideTmpdirServer(
     Effect.fnUntraced(function* () {

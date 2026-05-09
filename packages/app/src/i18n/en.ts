@@ -873,6 +873,8 @@ export const dict = {
   "settings.ephemeralContexts.position.session_top": "Session top",
   "settings.ephemeralContexts.position.before_user": "Before latest user",
   "settings.ephemeralContexts.position.after_user": "After latest user",
+  "settings.ephemeralContexts.position.before_latest": "Before latest message",
+  "settings.ephemeralContexts.position.after_latest": "After latest message",
   "prompt.ephemeralContext.none": "No temporary context",
   "prompt.ephemeralContext.tooltip": "Temporary context preset",
   "sound.option.none": "None",

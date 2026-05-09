@@ -34,7 +34,7 @@ export interface WallpaperSettingsItem {
 }
 
 export type EphemeralContextRole = "system" | "user" | "assistant"
-export type EphemeralContextPosition = "session_top" | "before_user" | "after_user"
+export type EphemeralContextPosition = "session_top" | "before_user" | "after_user" | "before_latest" | "after_latest"
 
 export interface EphemeralContextMessage {
   id: string
@@ -233,7 +233,9 @@ function ephemeralRole(value: string | undefined): EphemeralContextRole {
 }
 
 function ephemeralPosition(value: string | undefined): EphemeralContextPosition {
-  if (value === "session_top" || value === "after_user") return value
+  if (value === "session_top" || value === "after_user" || value === "before_latest" || value === "after_latest") {
+    return value
+  }
   return "before_user"
 }
 

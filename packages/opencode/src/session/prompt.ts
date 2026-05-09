@@ -75,11 +75,17 @@ IMPORTANT:
 
 const STRUCTURED_OUTPUT_SYSTEM_PROMPT = `IMPORTANT: The user has requested structured output. You MUST use the StructuredOutput tool to provide your final response. Do NOT respond with plain text - you MUST call the StructuredOutput tool with your answer formatted according to the schema.`
 
-type EphemeralContextPosition = "session_top" | "before_user" | "after_user"
+type EphemeralContextPosition = "session_top" | "before_user" | "after_user" | "before_latest" | "after_latest"
 
 export const EphemeralMessage = Schema.Struct({
   role: Schema.Union([Schema.Literal("system"), Schema.Literal("user"), Schema.Literal("assistant")]),
-  position: Schema.Union([Schema.Literal("session_top"), Schema.Literal("before_user"), Schema.Literal("after_user")]),
+  position: Schema.Union([
+    Schema.Literal("session_top"),
+    Schema.Literal("before_user"),
+    Schema.Literal("after_user"),
+    Schema.Literal("before_latest"),
+    Schema.Literal("after_latest"),
+  ]),
   content: Schema.String,
 })
 export type EphemeralMessage = Schema.Schema.Type<typeof EphemeralMessage>
@@ -1451,25 +1457,41 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
     const ephemeralByUser = new Map<MessageID, readonly EphemeralMessage[]>()
 
-    const insertEphemeral = (messages: ModelMessage[], userID: MessageID) => {
-      const items = ephemeralByUser.get(userID)
-      if (!items?.length) return messages
+    const toModelMessagesWithEphemeral = Effect.fn("SessionPrompt.toModelMessagesWithEphemeral")(function* (input: {
+      messages: MessageV2.WithParts[]
+      model: Provider.Model
+      userID: MessageID
+    }) {
+      const items = ephemeralByUser.get(input.userID)
+      if (!items?.length) return yield* MessageV2.toModelMessagesEffect(input.messages, input.model)
       const top = appendEphemeral([], items, "session_top")
       const before = appendEphemeral([], items, "before_user")
       const after = appendEphemeral([], items, "after_user")
-      if (top.length + before.length + after.length === 0) return messages
+      const beforeLatest = appendEphemeral([], items, "before_latest")
+      const afterLatest = appendEphemeral([], items, "after_latest")
+      if (top.length + before.length + after.length + beforeLatest.length + afterLatest.length === 0) {
+        return yield* MessageV2.toModelMessagesEffect(input.messages, input.model)
+      }
+      if (before.length + after.length + beforeLatest.length + afterLatest.length === 0) {
+        return [...top, ...(yield* MessageV2.toModelMessagesEffect(input.messages, input.model))]
+      }
 
-      const lastUserIndex = messages.findLastIndex((message) => message.role === "user")
-      if (lastUserIndex < 0) return [...top, ...messages, ...before, ...after]
-      return [
-        ...top,
-        ...messages.slice(0, lastUserIndex),
-        ...before,
-        messages[lastUserIndex],
-        ...after,
-        ...messages.slice(lastUserIndex + 1),
-      ]
-    }
+      const lastUserIndex = input.messages.findLastIndex((message) => message.info.role === "user")
+      const lastIndex = input.messages.length - 1
+      if (lastIndex < 0) return [...top, ...before, ...beforeLatest, ...afterLatest, ...after]
+      const result: ModelMessage[] = [...top]
+      for (const [index, message] of input.messages.entries()) {
+        result.push(
+          ...(index === lastUserIndex ? before : []),
+          ...(index === lastIndex ? beforeLatest : []),
+          ...(yield* MessageV2.toModelMessagesEffect([message], input.model)),
+          ...(index === lastIndex ? afterLatest : []),
+          ...(index === lastUserIndex ? after : []),
+        )
+      }
+      if (lastUserIndex < 0) result.push(...before, ...after)
+      return result
+    })
 
     const prompt: (input: PromptInput) => Effect.Effect<MessageV2.WithParts> = Effect.fn("SessionPrompt.prompt")(
       function* (input: PromptInput) {
@@ -1546,7 +1568,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           sys.skills(agent),
           sys.environment(model),
           instruction.system().pipe(Effect.orDie),
-          MessageV2.toModelMessagesEffect(history, model).pipe(Effect.map((messages) => insertEphemeral(messages, input.user.id))),
+          toModelMessagesWithEphemeral({ messages: history, model, userID: input.user.id }),
         ])
         const system = [...env, ...instructions, ...(skills ? [skills] : []), STRUCTURED_OUTPUT_SYSTEM_PROMPT]
         yield* handle.process({
@@ -1573,7 +1595,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         sys.skills(agent),
         sys.environment(model),
         instruction.system().pipe(Effect.orDie),
-        MessageV2.toModelMessagesEffect(history, model).pipe(Effect.map((messages) => insertEphemeral(messages, input.user.id))),
+        toModelMessagesWithEphemeral({ messages: history, model, userID: input.user.id }),
       ])
       yield* handle.process({
         user: input.user,
@@ -1786,7 +1808,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               sys.skills(agent),
               sys.environment(model),
               instruction.system().pipe(Effect.orDie),
-              MessageV2.toModelMessagesEffect(msgs, model).pipe(Effect.map((messages) => insertEphemeral(messages, lastUser.id))),
+              toModelMessagesWithEphemeral({ messages: msgs, model, userID: lastUser.id }),
             ])
             const system = [...env, ...instructions, ...(skills ? [skills] : [])]
             const format = lastUser.format ?? { type: "text" as const }
