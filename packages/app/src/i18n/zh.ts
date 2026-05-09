@@ -749,6 +749,8 @@ export const dict = {
   "settings.ephemeralContexts.position.after_user": "最新用户消息下方",
   "settings.ephemeralContexts.position.before_latest": "会话最新消息上方",
   "settings.ephemeralContexts.position.after_latest": "会话最新消息下方",
+  "settings.ephemeralContexts.position.inside_user_top": "最新用户消息内部顶部",
+  "settings.ephemeralContexts.position.inside_user_bottom": "最新用户消息内部尾部",
   "prompt.ephemeralContext.none": "无临时上下文",
   "prompt.ephemeralContext.tooltip": "临时上下文预设",
 

@@ -75,7 +75,14 @@ IMPORTANT:
 
 const STRUCTURED_OUTPUT_SYSTEM_PROMPT = `IMPORTANT: The user has requested structured output. You MUST use the StructuredOutput tool to provide your final response. Do NOT respond with plain text - you MUST call the StructuredOutput tool with your answer formatted according to the schema.`
 
-type EphemeralContextPosition = "session_top" | "before_user" | "after_user" | "before_latest" | "after_latest"
+type EphemeralContextPosition =
+  | "session_top"
+  | "before_user"
+  | "after_user"
+  | "before_latest"
+  | "after_latest"
+  | "inside_user_top"
+  | "inside_user_bottom"
 
 export const EphemeralMessage = Schema.Struct({
   role: Schema.Union([Schema.Literal("system"), Schema.Literal("user"), Schema.Literal("assistant")]),
@@ -85,6 +92,8 @@ export const EphemeralMessage = Schema.Struct({
     Schema.Literal("after_user"),
     Schema.Literal("before_latest"),
     Schema.Literal("after_latest"),
+    Schema.Literal("inside_user_top"),
+    Schema.Literal("inside_user_bottom"),
   ]),
   content: Schema.String,
 })
@@ -1455,6 +1464,32 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       return [...messages, ...injected]
     }
 
+    const ephemeralText = (items: readonly EphemeralMessage[] | undefined, position: EphemeralContextPosition) =>
+      items?.filter((item) => item.position === position && item.content.trim().length > 0).map((item) => item.content) ?? []
+
+    const textPart = (text: string): Exclude<Extract<ModelMessage, { role: "user" }>["content"], string>[number] => ({
+      type: "text",
+      text,
+    })
+
+    const injectInsideUser = (
+      message: ModelMessage,
+      top: readonly string[],
+      bottom: readonly string[],
+    ): ModelMessage[] => {
+      if (message.role !== "user") return [message]
+      if (top.length + bottom.length === 0) return [message]
+      return [
+        {
+          ...message,
+          content:
+            typeof message.content === "string"
+              ? [...top.map(textPart), textPart(message.content), ...bottom.map(textPart)]
+              : [...top.map(textPart), ...message.content, ...bottom.map(textPart)],
+        },
+      ]
+    }
+
     const ephemeralByUser = new Map<MessageID, readonly EphemeralMessage[]>()
 
     const toModelMessagesWithEphemeral = Effect.fn("SessionPrompt.toModelMessagesWithEphemeral")(function* (input: {
@@ -1469,10 +1504,21 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       const after = appendEphemeral([], items, "after_user")
       const beforeLatest = appendEphemeral([], items, "before_latest")
       const afterLatest = appendEphemeral([], items, "after_latest")
-      if (top.length + before.length + after.length + beforeLatest.length + afterLatest.length === 0) {
+      const insideTop = ephemeralText(items, "inside_user_top")
+      const insideBottom = ephemeralText(items, "inside_user_bottom")
+      if (
+        top.length +
+          before.length +
+          after.length +
+          beforeLatest.length +
+          afterLatest.length +
+          insideTop.length +
+          insideBottom.length ===
+        0
+      ) {
         return yield* MessageV2.toModelMessagesEffect(input.messages, input.model)
       }
-      if (before.length + after.length + beforeLatest.length + afterLatest.length === 0) {
+      if (before.length + after.length + beforeLatest.length + afterLatest.length + insideTop.length + insideBottom.length === 0) {
         return [...top, ...(yield* MessageV2.toModelMessagesEffect(input.messages, input.model))]
       }
 
@@ -1484,7 +1530,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         result.push(
           ...(index === lastUserIndex ? before : []),
           ...(index === lastIndex ? beforeLatest : []),
-          ...(yield* MessageV2.toModelMessagesEffect([message], input.model)),
+          ...(yield* MessageV2.toModelMessagesEffect([message], input.model)).flatMap((modelMessage) =>
+            index === lastUserIndex ? injectInsideUser(modelMessage, insideTop, insideBottom) : [modelMessage],
+          ),
           ...(index === lastIndex ? afterLatest : []),
           ...(index === lastUserIndex ? after : []),
         )

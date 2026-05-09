@@ -17,7 +17,15 @@ import { SettingsList } from "./settings-list"
 import { SettingsRow } from "./settings-row"
 
 const roles: EphemeralContextRole[] = ["system", "user", "assistant"]
-const positions: EphemeralContextPosition[] = ["session_top", "before_user", "after_user", "before_latest", "after_latest"]
+const positions: EphemeralContextPosition[] = [
+  "session_top",
+  "before_user",
+  "after_user",
+  "before_latest",
+  "after_latest",
+  "inside_user_top",
+  "inside_user_bottom",
+]
 const roleLabelKey = {
   system: "settings.ephemeralContexts.role.system",
   user: "settings.ephemeralContexts.role.user",
@@ -29,6 +37,8 @@ const positionLabelKey = {
   after_user: "settings.ephemeralContexts.position.after_user",
   before_latest: "settings.ephemeralContexts.position.before_latest",
   after_latest: "settings.ephemeralContexts.position.after_latest",
+  inside_user_top: "settings.ephemeralContexts.position.inside_user_top",
+  inside_user_bottom: "settings.ephemeralContexts.position.inside_user_bottom",
 } as const
 
 function id() {

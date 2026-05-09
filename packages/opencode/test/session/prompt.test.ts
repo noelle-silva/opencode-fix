@@ -415,17 +415,15 @@ it.live("prompt injects ephemeral messages only into the model request", () =>
 
 it.live("prompt injects ephemeral messages around the latest model message", () =>
   provideTmpdirServer(
-    Effect.fnUntraced(function* ({ dir, llm }) {
+    Effect.fnUntraced(function* ({ llm }) {
       const prompt = yield* SessionPrompt.Service
       const sessions = yield* Session.Service
       const chat = yield* sessions.create({
         title: "Ephemeral latest",
         permission: [{ permission: "*", pattern: "*", action: "allow" }],
       })
-      const file = path.join(dir, "ephemeral-latest-probe.txt")
-      yield* Effect.promise(() => Bun.write(file, "probe"))
 
-      yield* llm.tool("glob", { pattern: "**/ephemeral-latest-probe.txt" })
+      yield* llm.push(reply().text("assistant marker").toolCalls())
       yield* llm.text("done")
       yield* prompt.prompt({
         sessionID: chat.id,
@@ -440,16 +438,53 @@ it.live("prompt injects ephemeral messages around the latest model message", () 
       const inputs = yield* llm.inputs
       expect(inputs).toHaveLength(2)
       const firstRequest = JSON.stringify(inputs[0])
-      const secondRequest = JSON.stringify(inputs[1]).replaceAll("\\\\", "\\")
+      const secondRequest = JSON.stringify(inputs[1])
       expect(firstRequest.indexOf("before latest")).toBeLessThan(firstRequest.indexOf("real user"))
       expect(firstRequest.indexOf("after latest")).toBeGreaterThan(firstRequest.indexOf("real user"))
       expect(secondRequest.indexOf("before latest")).toBeGreaterThan(secondRequest.indexOf("real user"))
-      expect(secondRequest.indexOf("before latest")).toBeLessThan(secondRequest.indexOf(file))
-      expect(secondRequest.indexOf("after latest")).toBeGreaterThan(secondRequest.indexOf(file))
+      expect(secondRequest.indexOf("before latest")).toBeLessThan(secondRequest.indexOf("assistant marker"))
+      expect(secondRequest.indexOf("after latest")).toBeGreaterThan(secondRequest.indexOf("assistant marker"))
 
       const messages = JSON.stringify(yield* sessions.messages({ sessionID: chat.id }))
       expect(messages).not.toContain("before latest")
       expect(messages).not.toContain("after latest")
+    }),
+    { git: true, config: providerCfg },
+  ),
+)
+
+it.live("prompt injects ephemeral messages inside the latest user message", () =>
+  provideTmpdirServer(
+    Effect.fnUntraced(function* ({ llm }) {
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Ephemeral inside user",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+
+      yield* llm.text("world")
+      yield* prompt.prompt({
+        sessionID: chat.id,
+        agent: "build",
+        parts: [{ type: "text", text: "real user" }],
+        ephemeral: [
+          { role: "user", position: "inside_user_top", content: "inside top" },
+          { role: "user", position: "inside_user_bottom", content: "inside bottom" },
+        ],
+      })
+
+      const [input] = yield* llm.inputs
+      const request = JSON.stringify(input)
+      expect(request).toContain("inside top")
+      expect(request).toContain("inside bottom")
+      expect(request.indexOf("inside top")).toBeLessThan(request.indexOf("real user"))
+      expect(request.indexOf("inside bottom")).toBeGreaterThan(request.indexOf("real user"))
+      expect(request.indexOf("inside top")).toBeLessThan(request.indexOf("inside bottom"))
+
+      const messages = JSON.stringify(yield* sessions.messages({ sessionID: chat.id }))
+      expect(messages).not.toContain("inside top")
+      expect(messages).not.toContain("inside bottom")
     }),
     { git: true, config: providerCfg },
   ),
