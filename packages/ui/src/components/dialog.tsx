@@ -39,6 +39,14 @@ export function Dialog(props: DialogProps) {
               autofocusEl.focus()
             }
           }}
+          onPointerDownOutside={(e) => {
+            const target = e.detail.originalEvent.target
+            if (target instanceof Element && target.closest("[data-selection-ignore]")) e.preventDefault()
+          }}
+          onFocusOutside={(e) => {
+            const target = e.detail.originalEvent.target
+            if (target instanceof Element && target.closest("[data-selection-ignore]")) e.preventDefault()
+          }}
         >
           <Show when={props.title || props.action}>
             <div data-slot="dialog-header">

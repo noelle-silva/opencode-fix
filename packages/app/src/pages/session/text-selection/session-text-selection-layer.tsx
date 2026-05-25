@@ -440,26 +440,33 @@ export function SessionTextSelectionLayer(props: {
     if (refreshFrame !== undefined) cancelAnimationFrame(refreshFrame)
   })
 
+  const renderHighlights = (source: HighlightRect["source"]) => (
+    <For each={store.rects.filter((rect) => rect.source === source)}>
+      {(rect) => (
+        <button
+          data-selection-ignore
+          type="button"
+          class="absolute pointer-events-auto rounded-[3px] border border-warning-base/20 bg-[rgb(from_var(--surface-warning-base)_r_g_b_/_0.32)] hover:bg-[rgb(from_var(--surface-warning-base)_r_g_b_/_0.44)] transition-colors cursor-pointer"
+          style={{
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+          }}
+          aria-label={language.t("selection.ask.openAnswer")}
+          onClick={() => showAnswer(rect.annotationID)}
+        />
+      )}
+    </For>
+  )
+
   return (
     <Portal>
       <div class="fixed inset-0 pointer-events-none z-[40]">
-        <For each={store.rects.length ? store.rects : emptyRects}>
-          {(rect) => (
-            <button
-              type="button"
-              class="absolute pointer-events-auto rounded-[3px] border border-warning-base/20 bg-[rgb(from_var(--surface-warning-base)_r_g_b_/_0.32)] hover:bg-[rgb(from_var(--surface-warning-base)_r_g_b_/_0.44)] transition-colors cursor-pointer"
-              classList={{ "z-[40]": rect.source === "session", "z-[55]": rect.source === "answer" }}
-              style={{
-                left: `${rect.left}px`,
-                top: `${rect.top}px`,
-                width: `${rect.width}px`,
-                height: `${rect.height}px`,
-              }}
-              aria-label={language.t("selection.ask.openAnswer")}
-              onClick={() => showAnswer(rect.annotationID)}
-            />
-          )}
-        </For>
+        {renderHighlights("session")}
+      </div>
+      <div class="fixed inset-0 pointer-events-none z-[55]">
+        {renderHighlights("answer")}
       </div>
       <div class="fixed inset-0 pointer-events-none z-[60]">
         <Show when={store.contextMenu} keyed>
