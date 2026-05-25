@@ -27,6 +27,14 @@ export const Request = Schema.Struct({
   variant: Schema.optional(Schema.String),
   selectedText: Schema.String,
   question: Schema.String,
+  context: Schema.optional(
+    Schema.Array(
+      Schema.Struct({
+        role: SelectionAskMessageRole,
+        content: Schema.String,
+      }),
+    ),
+  ),
   ephemeral: Schema.optional(
     Schema.Array(
       Schema.Struct({
@@ -83,6 +91,7 @@ const modelMessages = (input: Request) => [
   ...(input.ephemeral ?? [])
     .filter((item) => messageRolePosition(item.position))
     .map((item) => ({ role: item.role, content: item.content })),
+  ...(input.context ?? []).map((item) => ({ role: item.role, content: item.content })),
   { role: "user" as const, content: promptText(input) },
 ]
 

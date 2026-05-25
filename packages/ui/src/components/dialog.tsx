@@ -16,6 +16,9 @@ export interface DialogProps extends ParentProps {
 
 export function Dialog(props: DialogProps) {
   const i18n = useI18n()
+  const isDialogExternalSafeTarget = (target: EventTarget | null) =>
+    target instanceof Element && !!target.closest("[data-dialog-ignore-outside],[data-selection-ignore]")
+
   return (
     <div
       data-component="dialog"
@@ -41,11 +44,11 @@ export function Dialog(props: DialogProps) {
           }}
           onPointerDownOutside={(e) => {
             const target = e.detail.originalEvent.target
-            if (target instanceof Element && target.closest("[data-selection-ignore]")) e.preventDefault()
+            if (isDialogExternalSafeTarget(target)) e.preventDefault()
           }}
           onFocusOutside={(e) => {
             const target = e.detail.originalEvent.target
-            if (target instanceof Element && target.closest("[data-selection-ignore]")) e.preventDefault()
+            if (isDialogExternalSafeTarget(target)) e.preventDefault()
           }}
         >
           <Show when={props.title || props.action}>

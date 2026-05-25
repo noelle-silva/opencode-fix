@@ -45,6 +45,7 @@ export type TextSelectionAnnotation = {
   variant?: string
   agent: string
   ephemeralPresetID?: string | null
+  includeContext?: boolean
   createdAt: number
   status: "pending" | "answered" | "error"
   error?: string

@@ -526,6 +526,8 @@ export const dict = {
   "selection.ask.sending": "发送中...",
   "selection.ask.defaultQuestion": "请根据选中的文字回答。",
   "selection.ask.usesCurrentModel": "使用当前模型和预设",
+  "selection.ask.context.no": "不带上下文",
+  "selection.ask.context.yes": "携带上下文",
   "selection.ask.openAnswer": "打开划词答案",
   "selection.contextMenu.ask": "对所选文字提问",
   "selection.answer.title": "划词答案",

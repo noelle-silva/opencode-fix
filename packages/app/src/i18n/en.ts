@@ -559,6 +559,8 @@ export const dict = {
   "selection.ask.sending": "Sending...",
   "selection.ask.defaultQuestion": "Please answer based on the selected text.",
   "selection.ask.usesCurrentModel": "Uses current model and preset",
+  "selection.ask.context.no": "No context",
+  "selection.ask.context.yes": "With context",
   "selection.ask.openAnswer": "Open selection answer",
   "selection.contextMenu.ask": "Ask about selection",
   "selection.answer.title": "Selection answer",

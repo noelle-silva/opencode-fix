@@ -171,6 +171,7 @@ export function Select<T>(props: SelectProps<T> & Omit<ButtonProps, "children">)
             ...local.classList,
             [local.class ?? ""]: !!local.class,
           }}
+          data-dialog-ignore-outside
           data-component="select-content"
           data-trigger-style={local.triggerVariant}
         >

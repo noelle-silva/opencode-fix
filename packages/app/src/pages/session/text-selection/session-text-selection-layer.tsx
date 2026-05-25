@@ -1,4 +1,5 @@
 import { Button } from "@opencode-ai/ui/button"
+import type { Message, Part } from "@opencode-ai/sdk/v2/client"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Markdown } from "@opencode-ai/ui/markdown"
@@ -27,6 +28,20 @@ const commandKeybind = "mod+shift+a"
 const promptOffset = 12
 const emptyAnnotations: TextSelectionAnnotation[] = []
 const emptyRects: HighlightRect[] = []
+const emptyMessages: Message[] = []
+const emptyParts: Part[] = []
+const contextOptions: ContextOption[] = [
+  { value: "no", labelKey: "selection.ask.context.no" },
+  { value: "yes", labelKey: "selection.ask.context.yes" },
+] 
+type ContextOption = {
+  value: "no" | "yes"
+  labelKey: "selection.ask.context.no" | "selection.ask.context.yes"
+}
+type ContextMessage = {
+  role: "user" | "assistant"
+  content: string
+}
 const ignoredSelectionTarget = (target: EventTarget | null) => target instanceof Element && !!target.closest("[data-selection-ignore]")
 const isAskSelectionKeybind = (event: KeyboardEvent) =>
   event.shiftKey && (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "a"
@@ -58,11 +73,21 @@ const clampPosition = (input: { left: number; top: number }, size: { width: numb
   left: Math.min(Math.max(12, input.left), window.innerWidth - size.width),
   top: Math.min(Math.max(12, input.top), window.innerHeight - size.height),
 })
+const partText = (part: Part) => {
+  if (part.type === "text" || part.type === "reasoning") return part.text
+  if (part.type === "file") return `[file:${part.filename ?? part.url}]`
+  if (part.type === "agent") return `@${part.name}`
+  if (part.type === "tool") return `[tool:${part.tool}]`
+  return ""
+}
+const messageText = (parts: Part[]) => parts.map(partText).filter(Boolean).join("\n").trim()
 
 export function SessionTextSelectionLayer(props: {
   sessionID: string
   sessionDirectory: string
   root: () => HTMLElement | undefined
+  messages: () => Message[]
+  parts: (messageID: string) => Part[] | undefined
 }) {
   const sdk = useSDK()
   const local = useLocal()
@@ -91,6 +116,7 @@ export function SessionTextSelectionLayer(props: {
     model?: ModelKey
     variant?: string | null
     ephemeralPresetID?: string | null
+    includeContext?: boolean
   }>({
     prompt: "",
     rects: [],
@@ -207,6 +233,46 @@ export function SessionTextSelectionLayer(props: {
     return root ? [{ id: props.sessionID, root }, ...store.surfaces] : store.surfaces
   }
 
+  const currentContextOption = createMemo<ContextOption>(() => contextOptions.find((option) => option.value === (store.includeContext ? "yes" : "no")) ?? contextOptions[0])
+
+  const sourceMessageID = (annotation: TextSelectionAnnotation): string | undefined => {
+    if (annotation.source.type === "session") return annotation.source.messageID
+    const parent = annotation.parentID ? annotations().find((item) => item.id === annotation.parentID) : undefined
+    if (!parent) return
+    return sourceMessageID(parent)
+  }
+
+  const mainContext = (annotation: TextSelectionAnnotation) => {
+    const id = sourceMessageID(annotation)
+    if (!id) return []
+    const messages = props.messages() ?? emptyMessages
+    const index = messages.findIndex((message) => message.id === id)
+    const scoped = index >= 0 ? messages.slice(0, index + 1) : messages
+    return scoped
+      .map((message): ContextMessage | undefined => {
+        const content = messageText(props.parts(message.id) ?? emptyParts)
+        if (!content) return
+        return { role: message.role === "assistant" ? "assistant" : "user", content }
+      })
+      .filter((item): item is ContextMessage => !!item)
+  }
+
+  const pathContext = (annotation: TextSelectionAnnotation) => {
+    const byID = new Map(annotations().map((item) => [item.id, item]))
+    const chain: TextSelectionAnnotation[] = []
+    let item = annotation.parentID ? byID.get(annotation.parentID) : undefined
+    while (item) {
+      chain.unshift(item)
+      item = item.parentID ? byID.get(item.parentID) : undefined
+    }
+    return chain.flatMap((entry): ContextMessage[] => {
+      const question = [`Selected text:\n${entry.anchor.text}`, `Question:\n${entry.question}`].join("\n\n")
+      return entry.answer ? [{ role: "user", content: question }, { role: "assistant", content: entry.answer }] : [{ role: "user", content: question }]
+    })
+  }
+
+  const selectionContext = (annotation: TextSelectionAnnotation) => [...mainContext(annotation), ...pathContext(annotation)]
+
   const refreshRects = (items = annotations()) => {
     const currentSurfaces = surfaces()
     const rects = latestUniqueAnnotations(items).flatMap((annotation) => {
@@ -243,6 +309,7 @@ export function SessionTextSelectionLayer(props: {
       if (!store.model && model) setStore("model", { providerID: model.provider.id, modelID: model.id })
       if (store.variant === undefined) setStore("variant", local.model.variant.selected())
       if (store.ephemeralPresetID === undefined) setStore("ephemeralPresetID", settings.ephemeralContexts.selected())
+      if (store.includeContext === undefined) setStore("includeContext", false)
     })
   }
 
@@ -298,26 +365,30 @@ export function SessionTextSelectionLayer(props: {
     setStore("activeAnnotationID", id)
     if (store.answerDialogOpen) return
     setStore("answerDialogOpen", true)
-    dialog.show(() => (
-      <AnswerDialog
-        annotation={activeAnnotation}
-        selectionAnnotations={activeSelectionAnnotations}
-        path={path}
-        onSelect={(annotationID) => setStore("activeAnnotationID", annotationID)}
-        onSurface={(root, annotationID) => {
-          setStore("surfaces", (items) => [
-            ...items.filter((item) => item.id !== annotationID),
-            { id: annotationID, root, source: { type: "answer", annotationID } },
-          ])
-          scheduleRefresh()
-        }}
-        onCloseSurface={(annotationID) => {
-          setStore("surfaces", (items) => items.filter((item) => item.id !== annotationID))
-          scheduleRefresh()
-        }}
-        onClose={() => setStore("answerDialogOpen", false)}
-      />
-    ))
+    dialog.show(
+      () => (
+        <AnswerDialog
+          annotation={activeAnnotation}
+          selectionAnnotations={activeSelectionAnnotations}
+          path={path}
+          onSelect={(annotationID) => setStore("activeAnnotationID", annotationID)}
+          onSurface={(root, annotationID) => {
+            setStore("surfaces", (items) => [
+              ...items.filter((item) => item.id !== annotationID),
+              { id: annotationID, root, source: { type: "answer", annotationID } },
+            ])
+            scheduleRefresh()
+          }}
+          onCloseSurface={(annotationID) => {
+            setStore("surfaces", (items) => items.filter((item) => item.id !== annotationID))
+            scheduleRefresh()
+          }}
+          onClose={() => setStore("answerDialogOpen", false)}
+        />
+      ),
+      undefined,
+      { modal: false },
+    )
   }
 
   const updateAnnotation = (id: string, patch: Partial<TextSelectionAnnotation>) => {
@@ -354,6 +425,7 @@ export function SessionTextSelectionLayer(props: {
       variant,
       agent: agent.name,
       ephemeralPresetID: store.ephemeralPresetID,
+      includeContext: store.includeContext ?? false,
       createdAt: Date.now(),
       status: "pending",
     }
@@ -373,6 +445,7 @@ export function SessionTextSelectionLayer(props: {
         variant,
         selectedText: draft.anchor.text,
         question,
+        context: store.includeContext ? selectionContext(pendingAnnotation) : undefined,
         ephemeral: ephemeral?.length ? ephemeral : undefined,
       })
       .then((response) => (response.error ? { error: response.error } : { data: response.data }))
@@ -546,6 +619,17 @@ export function SessionTextSelectionLayer(props: {
                     variant="ghost"
                   />
                 </Show>
+                <Select
+                  size="small"
+                  options={contextOptions}
+                  current={currentContextOption()}
+                  value={(option) => option.value}
+                  label={(option) => language.t(option.labelKey)}
+                  onSelect={(option) => setStore("includeContext", option?.value === "yes")}
+                  class="min-w-0 max-w-[150px] text-text-base"
+                  valueClass="truncate text-12-regular text-text-base"
+                  variant="ghost"
+                />
               </div>
               <div class="pt-2 flex items-center justify-end gap-1.5">
                 <Button size="small" variant="ghost" type="button" disabled={store.submitting} onClick={closePrompt}>

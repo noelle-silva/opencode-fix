@@ -1818,6 +1818,8 @@ export default function Page() {
               sessionID={item.id}
               sessionDirectory={sdk.directory}
               root={() => timeline.root}
+              messages={() => sessionMessages(item.id)}
+              parts={(messageID) => sync.data.part[messageID]}
             />
           </Show>
         </Show>
