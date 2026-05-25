@@ -12,6 +12,7 @@ import { SessionRevert } from "@/session/revert"
 import { SessionShare } from "@/share/session"
 import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
+import { SelectionAsk } from "@/selection/ask"
 import { Todo } from "@/session/todo"
 import { Effect } from "effect"
 import { Agent } from "@/agent/agent"
@@ -945,6 +946,33 @@ export const SessionRoutes = lazy(() =>
 
         return c.body(null, 204)
       },
+    )
+    .post(
+      "/:sessionID/selection/ask",
+      describeRoute({
+        summary: "Ask about selected text",
+        description: "Ask the selected text without adding messages to the session history.",
+        operationId: "session.selection.ask",
+        responses: {
+          200: {
+            description: "Selection answer",
+            content: {
+              "application/json": {
+                schema: resolver(zodObject(SelectionAsk.Response)),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: SessionID.zod })),
+      validator("json", zodObject(SelectionAsk.Request)),
+      async (c) =>
+        jsonRequest("SessionRoutes.selectionAsk", c, function* () {
+          const selectionAsk = yield* SelectionAsk.Service
+          const body = c.req.valid("json") as SelectionAsk.Request
+          return yield* selectionAsk.ask({ ...body, sessionID: c.req.valid("param").sessionID })
+        }),
     )
     .post(
       "/:sessionID/regenerate",

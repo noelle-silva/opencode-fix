@@ -7,6 +7,7 @@ import { SessionPrompt } from "@/session/prompt"
 import { SessionRevert } from "@/session/revert"
 import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
+import { SelectionAsk } from "@/selection/ask"
 import { Todo } from "@/session/todo"
 import { MessageID, PartID, SessionID } from "@/session/schema"
 import { Snapshot } from "@/snapshot"
@@ -61,6 +62,7 @@ export const SummarizePayload = Schema.Struct({
   auto: Schema.optional(Schema.Boolean),
 })
 export const PromptPayload = Schema.Struct(Struct.omit(SessionPrompt.PromptInput.fields, ["sessionID"]))
+export const SelectionAskPayload = SelectionAsk.Request
 export const RegeneratePayload = Schema.Struct(Struct.omit(SessionPrompt.RegenerateInput.fields, ["sessionID"]))
 export const CommandPayload = Schema.Struct(Struct.omit(SessionPrompt.CommandInput.fields, ["sessionID"]))
 export const ShellPayload = Schema.Struct(Struct.omit(SessionPrompt.ShellInput.fields, ["sessionID"]))
@@ -88,6 +90,7 @@ export const SessionPaths = {
   summarize: `${root}/:sessionID/summarize`,
   prompt: `${root}/:sessionID/message`,
   promptAsync: `${root}/:sessionID/prompt_async`,
+  selectionAsk: `${root}/:sessionID/selection/ask`,
   regenerate: `${root}/:sessionID/regenerate`,
   command: `${root}/:sessionID/command`,
   shell: `${root}/:sessionID/shell`,
@@ -317,6 +320,18 @@ export const SessionApi = HttpApi.make("session")
             summary: "Send async message",
             description:
               "Create and send a new message to a session asynchronously, starting the session if needed and returning immediately.",
+          }),
+        ),
+        HttpApiEndpoint.post("selectionAsk", SessionPaths.selectionAsk, {
+          params: { sessionID: SessionID },
+          payload: SelectionAskPayload,
+          success: described(SelectionAsk.Response, "Selection answer"),
+          error: [HttpApiError.BadRequest, HttpApiError.NotFound],
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "session.selection.ask",
+            summary: "Ask about selected text",
+            description: "Ask the selected text without adding messages to the session history.",
           }),
         ),
         HttpApiEndpoint.post("regenerate", SessionPaths.regenerate, {

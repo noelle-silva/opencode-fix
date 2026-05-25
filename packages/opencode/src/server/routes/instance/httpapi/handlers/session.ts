@@ -14,6 +14,7 @@ import { SessionRevert } from "@/session/revert"
 import { SessionRunState } from "@/session/run-state"
 import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
+import { SelectionAsk } from "@/selection/ask"
 import { Todo } from "@/session/todo"
 import { MessageID, PartID, SessionID } from "@/session/schema"
 import { NotFoundError } from "@/storage/storage"
@@ -34,6 +35,7 @@ import {
   PromptPayload,
   RegeneratePayload,
   RevertPayload,
+  SelectionAskPayload,
   ShellPayload,
   SummarizePayload,
   UpdatePayload,
@@ -45,6 +47,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
     const session = yield* Session.Service
     const shareSvc = yield* SessionShare.Service
     const promptSvc = yield* SessionPrompt.Service
+    const selectionAskSvc = yield* SelectionAsk.Service
     const revertSvc = yield* SessionRevert.Service
     const compactSvc = yield* SessionCompaction.Service
     const runState = yield* SessionRunState.Service
@@ -287,6 +290,15 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       return HttpApiSchema.NoContent.make()
     })
 
+    const selectionAsk = Effect.fn("SessionHttpApi.selectionAsk")(function* (ctx: {
+      params: { sessionID: SessionID }
+      payload: typeof SelectionAskPayload.Type
+    }) {
+      return yield* selectionAskSvc
+        .ask({ ...ctx.payload, sessionID: ctx.params.sessionID })
+        .pipe(Effect.mapError(() => new HttpApiError.BadRequest({})))
+    })
+
     const regenerate = Effect.fn("SessionHttpApi.regenerate")(function* (ctx: {
       params: { sessionID: SessionID }
       payload: typeof RegeneratePayload.Type
@@ -391,6 +403,7 @@ export const sessionHandlers = HttpApiBuilder.group(InstanceHttpApi, "session", 
       .handle("summarize", summarize)
       .handle("prompt", prompt)
       .handle("promptAsync", promptAsync)
+      .handle("selectionAsk", selectionAsk)
       .handle("regenerate", regenerate)
       .handle("command", command)
       .handle("shell", shell)

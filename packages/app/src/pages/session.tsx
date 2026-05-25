@@ -52,6 +52,7 @@ import {
   shouldFocusTerminalOnKeyDown,
 } from "@/pages/session/helpers"
 import { MessageTimeline } from "@/pages/session/message-timeline"
+import { SessionTextSelectionLayer } from "@/pages/session/text-selection"
 import { type DiffStyle, SessionReviewTab, type SessionReviewTabProps } from "@/pages/session/review-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { syncSessionModel } from "@/pages/session/session-model-helpers"
@@ -1756,6 +1757,7 @@ export default function Page() {
   const cachedTimeline = (item: SessionViewCacheItem) => {
     const active = () => params.id === item.id
     const visible = createMemo(() => sessionVisibleUserMessages(item.id), emptyUserMessages, { equals: same })
+    const [timeline, setTimeline] = createStore({ root: undefined as HTMLDivElement | undefined })
     return (
       <div
         class="absolute inset-0"
@@ -1794,6 +1796,7 @@ export default function Page() {
             onAutoScrollInteraction={autoScroll.handleInteraction}
             centered={centered()}
             setContentRef={(el) => {
+              setTimeline("root", el)
               content = el
               autoScroll.contentRef(el)
 
@@ -1810,6 +1813,13 @@ export default function Page() {
             renderedUserMessages={historyWindow.renderedUserMessagesFor(item.id, visible())}
             anchor={(id) => (active() ? anchor(id) : `cached-${item.id}-${id}`)}
           />
+          <Show when={active()}>
+            <SessionTextSelectionLayer
+              sessionID={item.id}
+              sessionDirectory={sdk.directory}
+              root={() => timeline.root}
+            />
+          </Show>
         </Show>
       </div>
     )

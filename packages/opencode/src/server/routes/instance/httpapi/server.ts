@@ -30,6 +30,7 @@ import { Question } from "@/question"
 import { Session } from "@/session/session"
 import { SessionCompaction } from "@/session/compaction"
 import { SessionPrompt } from "@/session/prompt"
+import { SelectionAsk } from "@/selection/ask"
 import { SessionRevert } from "@/session/revert"
 import { SessionRunState } from "@/session/run-state"
 import { SessionStatus } from "@/session/status"
@@ -172,6 +173,7 @@ export function createRoutes(corsOptions?: CorsOptions) {
       Session.defaultLayer,
       SessionCompaction.defaultLayer,
       SessionPrompt.defaultLayer,
+      SelectionAsk.defaultLayer,
       SessionRevert.defaultLayer,
       SessionShare.defaultLayer,
       SessionRunState.defaultLayer,
